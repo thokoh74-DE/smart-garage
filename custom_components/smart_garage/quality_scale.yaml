@@ -1,0 +1,63 @@
+# Home Assistant Integration Quality Scale
+# https://developers.home-assistant.io/docs/core/integration-quality-scale/
+rules:
+  # ── Bronze (baseline) ──
+  config-flow:
+    status: done
+  entity-unique-id:
+    status: done
+  has-entity-name:
+    status: done
+  runtime-data:
+    status: done
+  appropriate-polling:
+    status: exempt
+    comment: Integration is event-driven (local_push), no polling.
+  action-setup:
+    status: exempt
+    comment: Integration does not register custom actions.
+
+  # ── Silver ──
+  config-entry-unloading:
+    status: done
+    comment: async_unload_entry stops controller and unloads platforms.
+  entity-unavailable:
+    status: done
+    comment: Entities report unavailable when actor is unreachable.
+  log-when-unavailable:
+    status: done
+    comment: Logs warning when actor goes unavailable while door is open.
+  parallel-updates:
+    status: done
+    comment: Cover uses pulse_lock; sensor/switch platforms are event-driven.
+  reauthentication-flow:
+    status: exempt
+    comment: Local hardware only, no authentication required.
+  test-before-setup:
+    status: todo
+    comment: Should verify control switch entity exists before setup.
+  docs-installation-parameters:
+    status: done
+  docs-removal-instructions:
+    status: done
+  docs-configuration-parameters:
+    status: done
+  integration-owner:
+    status: done
+    comment: "@thokoh74-DE"
+
+  # ── Gold (tracking) ──
+  devices:
+    status: done
+  diagnostics:
+    status: done
+  discovery:
+    status: exempt
+    comment: Impulse-based garage doors cannot be auto-discovered.
+  entity-translations:
+    status: done
+  reconfigure-flow:
+    status: done
+  stale-devices:
+    status: exempt
+    comment: Single device per config entry.
