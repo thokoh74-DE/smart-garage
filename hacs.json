@@ -1,0 +1,8 @@
+{
+  "name": "Smart Garage",
+  "content_in_root": false,
+  "render_readme": true,
+  "homeassistant": "2024.1.0",
+  "domains": ["cover", "sensor", "switch", "binary_sensor"],
+  "country": ["DE", "AT", "CH"]
+}

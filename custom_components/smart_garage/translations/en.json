@@ -1,0 +1,204 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Basic Settings",
+        "data": {
+          "name": "Name / Prefix",
+          "control_switch": "Control Switch",
+          "pulse_duration_ms": "Pulse Duration",
+          "pulse_delay_s": "Pulse Delay"
+        }
+      },
+      "sensors": {
+        "title": "Position Sensors (optional)",
+        "data": {
+          "closed_sensor": "Closed Sensor",
+          "closed_sensor_invert": "Invert (OFF = closed)",
+          "open_sensor": "Open Sensor",
+          "open_sensor_invert": "Invert (OFF = open)",
+          "vibration_sensor": "Vibration Sensor",
+          "travel_time_s": "Travel Time",
+          "external_button": "External Button"
+        }
+      },
+      "safety": {
+        "title": "Safety",
+        "data": {
+          "safety_enabled": "Accidental-open protection",
+          "safety_vibration_s": "Vibration threshold",
+          "safety_close_delay_s": "Close delay",
+          "notify_service": "Notification service"
+        }
+      },
+      "ventilation": {
+        "title": "Ventilation",
+        "data": {
+          "enable_ventilation": "Enable ventilation"
+        }
+      },
+      "ventilation_sensors": {
+        "title": "Ventilation – Sensors (all optional)",
+        "data": {
+          "indoor_temp_sensor": "Indoor Temperature",
+          "indoor_humidity_sensor": "Indoor Humidity",
+          "outdoor_temp_sensor": "Outdoor Temperature",
+          "outdoor_humidity_sensor": "Outdoor Humidity",
+          "rain_sensor": "Rain Sensor",
+          "humidity_threshold": "Humidity Threshold",
+          "ah_diff_threshold": "AH Diff Threshold",
+          "ventilation_open_s": "Ventilation Opening",
+          "ventilation_check_interval": "Check Interval",
+          "presence_entity": "Presence Entity",
+          "rain_close_delay_min": "Rain Close Delay"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Smart Garage Einstellungen",
+        "menu_options": {
+          "opt_basic": "Grundeinstellungen",
+          "opt_sensors": "Positionssensoren",
+          "opt_safety": "Sicherheit",
+          "opt_ventilation": "Lüftungssteuerung"
+        }
+      },
+      "opt_basic": {
+        "title": "Grundeinstellungen",
+        "data": {
+          "control_switch": "Steuerungs-Schalter",
+          "pulse_duration_ms": "Impulsdauer",
+          "pulse_delay_s": "Impulspause"
+        }
+      },
+      "opt_sensors": {
+        "title": "Positionssensoren",
+        "data": {
+          "closed_sensor": "Endschalter unten",
+          "closed_sensor_invert": "Invertieren",
+          "open_sensor": "Endschalter oben",
+          "open_sensor_invert": "Invertieren",
+          "vibration_sensor": "Erschütterungssensor",
+          "travel_time_s": "Fahrzeit",
+          "external_button": "Externer Taster"
+        }
+      },
+      "opt_safety": {
+        "title": "Sicherheit",
+        "data": {
+          "safety_enabled": "Versehentliches-Öffnen-Schutz",
+          "safety_vibration_s": "Vibrationsschwelle",
+          "safety_close_delay_s": "Schließverzögerung",
+          "notify_service": "Benachrichtigungs-Service"
+        }
+      },
+      "opt_ventilation": {
+        "title": "Lüftung",
+        "data": {
+          "enable_ventilation": "Lüftung aktivieren"
+        }
+      },
+      "opt_vent_sensors": {
+        "title": "Lüftung – Sensoren",
+        "data": {
+          "indoor_temp_sensor": "Temperatur innen",
+          "indoor_humidity_sensor": "Feuchte innen",
+          "outdoor_temp_sensor": "Temperatur außen",
+          "outdoor_humidity_sensor": "Feuchte außen",
+          "rain_sensor": "Regensensor",
+          "humidity_threshold": "Feuchte-Schwelle",
+          "ah_diff_threshold": "AH-Differenz",
+          "ventilation_open_s": "Öffnungsdauer",
+          "ventilation_check_interval": "Prüfintervall",
+          "presence_entity": "Anwesenheit",
+          "rain_close_delay_min": "Regen-Verzögerung"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "last_drive": {
+        "name": "Last Drive",
+        "state": {
+          "closed": "Closed",
+          "opening": "Opening",
+          "open": "Opened",
+          "closing": "Closing",
+          "stopped_up": "Stop",
+          "stopped_down": "Stop",
+          "ventilating": "Ventilate"
+        }
+      },
+      "last_command": {
+        "name": "Last Command",
+        "state": {
+          "up": "Up",
+          "down": "Down",
+          "stop": "Stop",
+          "ventilate": "Ventilate",
+          "ventilate_close": "Close Ventilation",
+          "manual": "Manual",
+          "none": "–"
+        }
+      },
+      "current_state": {
+        "name": "Current State"
+      },
+      "limit_switch_bottom": {
+        "name": "Limit Switch Bottom"
+      },
+      "limit_switch_top": {
+        "name": "Limit Switch Top"
+      },
+      "vibration_sensor": {
+        "name": "Vibration Sensor"
+      },
+      "control_switch_mirror": {
+        "name": "Control Switch"
+      },
+      "ventilation_recommendation": {
+        "name": "Ventilation Recommendation",
+        "state": {
+          "recommend": "Ventilate",
+          "neutral": "Neutral",
+          "not_recommend": "Do Not Ventilate"
+        }
+      },
+      "abs_humidity_indoor": {
+        "name": "Abs. Humidity Indoor"
+      },
+      "abs_humidity_outdoor": {
+        "name": "Abs. Humidity Outdoor"
+      },
+      "dew_point_indoor": {
+        "name": "Dew Point Indoor"
+      },
+      "dew_point_outdoor": {
+        "name": "Dew Point Outdoor"
+      }
+    },
+    "binary_sensor": {
+      "ventilation_active": {
+        "name": "Ventilation Active"
+      },
+      "actor_reachable": {
+        "name": "Actor Reachable"
+      }
+    },
+    "switch": {
+      "ventilation_auto": {
+        "name": "Ventilation Auto"
+      },
+      "rain_auto_close": {
+        "name": "Rain Auto Close"
+      },
+      "manual_ventilation": {
+        "name": "Manual Ventilation"
+      }
+    }
+  }
+}
