@@ -1,4 +1,5 @@
 """Cover platform with state persistence, availability, and error handling."""
+
 from __future__ import annotations
 
 import json
@@ -15,11 +16,10 @@ from homeassistant.helpers.restore_state import RestoreEntity
 
 from .const import (
     DOMAIN,
-    CONF_NAME,
     DOOR_CLOSED,
-    DOOR_OPENING,
     DOOR_CLOSING,
     DOOR_OPEN,
+    DOOR_OPENING,
     DOOR_VENTILATING,
 )
 from .controller import SmartGarageController
@@ -165,6 +165,4 @@ class SmartGarageCover(RestoreEntity, CoverEntity):
             else:
                 await self._ctrl.async_open()
         except Exception as err:
-            raise HomeAssistantError(
-                f"Failed to set position to {target}: {err}"
-            ) from err
+            raise HomeAssistantError(f"Failed to set position to {target}: {err}") from err
