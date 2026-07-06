@@ -5,8 +5,8 @@
   "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/thokoh74-DE/smart-garage",
-  "issue_tracker": "https://github.com/thokoh74-DE/smart-garage/issues",
   "iot_class": "local_push",
+  "issue_tracker": "https://github.com/thokoh74-DE/smart-garage/issues",
   "requirements": [],
   "version": "1.0.2"
 }
