@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import math
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Any
 
 from homeassistant.const import (
@@ -78,6 +80,19 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 _CYCLE_FROM_CLOSED = [DOOR_OPENING, DOOR_STOPPED_UP, DOOR_CLOSING, DOOR_STOPPED_DOWN]
 _CYCLE_FROM_OPEN = [DOOR_CLOSING, DOOR_STOPPED_DOWN, DOOR_OPENING, DOOR_STOPPED_UP]
+
+
+def _get_manifest_version() -> str:
+    """Read the current version from manifest.json (kept in sync by CI releases)."""
+    manifest_path = Path(__file__).parent / "manifest.json"
+    try:
+        with open(manifest_path, encoding="utf-8") as f:
+            return json.load(f).get("version", "unknown")
+    except (OSError, json.JSONDecodeError):
+        return "unknown"
+
+
+_INTEGRATION_VERSION = _get_manifest_version()
 
 
 def absolute_humidity(temp_c: float, rel_hum: float) -> float | None:
@@ -214,7 +229,7 @@ class SmartGarageController:
             name=self._config.get(CONF_NAME, "Smart Garage"),
             manufacturer="Smart Garage",
             model="Impulse Garage Door v1",
-            sw_version="1.0.0",
+            sw_version=_INTEGRATION_VERSION,
         )
 
     # -- Derived door state -------------------------------------------
