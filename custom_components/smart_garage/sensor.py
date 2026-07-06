@@ -1,4 +1,5 @@
 """Sensor platform – ventilation + diagnostics, all names via translation_key."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -26,22 +27,36 @@ from .const import (
 from .controller import SmartGarageController
 
 LAST_DRIVE_OPTIONS = [
-    "closed", "opening", "open", "closing",
-    "stopped_up", "stopped_down", "ventilating",
+    "closed",
+    "opening",
+    "open",
+    "closing",
+    "stopped_up",
+    "stopped_down",
+    "ventilating",
 ]
 LAST_COMMAND_OPTIONS = [
-    "up", "down", "stop", "ventilate",
-    "ventilate_close", "manual", "none",
+    "up",
+    "down",
+    "stop",
+    "ventilate",
+    "ventilate_close",
+    "manual",
+    "none",
 ]
 _STATE_LABELS = {
     "de": {
-        DOOR_CLOSED: "Geschlossen", DOOR_OPENING: "Wird geöffnet",
-        DOOR_OPEN: "Geöffnet", DOOR_CLOSING: "Wird geschlossen",
+        DOOR_CLOSED: "Geschlossen",
+        DOOR_OPENING: "Wird geöffnet",
+        DOOR_OPEN: "Geöffnet",
+        DOOR_CLOSING: "Wird geschlossen",
         DOOR_VENTILATING: "Belüftung",
     },
     "en": {
-        DOOR_CLOSED: "Closed", DOOR_OPENING: "Opening",
-        DOOR_OPEN: "Opened", DOOR_CLOSING: "Closing",
+        DOOR_CLOSED: "Closed",
+        DOOR_OPENING: "Opening",
+        DOOR_OPEN: "Opened",
+        DOOR_CLOSING: "Closing",
         DOOR_VENTILATING: "Ventilating",
     },
 }
@@ -56,32 +71,62 @@ async def async_setup_entry(hass, entry, async_add_entities):
         DiagCurrentState(entry, ctrl),
     ]
     if ctrl.closed_sensor:
-        entities.append(DiagMirror(
-            entry, hass, ctrl, "limit_switch_bottom",
-            ctrl.closed_sensor, "endschalter_unten", "mdi:arrow-collapse-down",
-        ))
+        entities.append(
+            DiagMirror(
+                entry,
+                hass,
+                ctrl,
+                "limit_switch_bottom",
+                ctrl.closed_sensor,
+                "endschalter_unten",
+                "mdi:arrow-collapse-down",
+            )
+        )
     if ctrl.open_sensor:
-        entities.append(DiagMirror(
-            entry, hass, ctrl, "limit_switch_top",
-            ctrl.open_sensor, "endschalter_oben", "mdi:arrow-collapse-up",
-        ))
+        entities.append(
+            DiagMirror(
+                entry,
+                hass,
+                ctrl,
+                "limit_switch_top",
+                ctrl.open_sensor,
+                "endschalter_oben",
+                "mdi:arrow-collapse-up",
+            )
+        )
     if ctrl.vibration_sensor:
-        entities.append(DiagMirror(
-            entry, hass, ctrl, "vibration_sensor",
-            ctrl.vibration_sensor, "vibration", "mdi:vibrate",
-        ))
-    entities.append(DiagMirror(
-        entry, hass, ctrl, "control_switch_mirror",
-        ctrl.control_switch, "schaltaktor", "mdi:electric-switch",
-    ))
+        entities.append(
+            DiagMirror(
+                entry,
+                hass,
+                ctrl,
+                "vibration_sensor",
+                ctrl.vibration_sensor,
+                "vibration",
+                "mdi:vibrate",
+            )
+        )
+    entities.append(
+        DiagMirror(
+            entry,
+            hass,
+            ctrl,
+            "control_switch_mirror",
+            ctrl.control_switch,
+            "schaltaktor",
+            "mdi:electric-switch",
+        )
+    )
     if ctrl.vent_enabled_cfg and ctrl.humidity_configured:
-        entities.extend([
-            VentRec(entry, ctrl),
-            AbsHum(entry, ctrl, "indoor"),
-            AbsHum(entry, ctrl, "outdoor"),
-            DewPt(entry, ctrl, "indoor"),
-            DewPt(entry, ctrl, "outdoor"),
-        ])
+        entities.extend(
+            [
+                VentRec(entry, ctrl),
+                AbsHum(entry, ctrl, "indoor"),
+                AbsHum(entry, ctrl, "outdoor"),
+                DewPt(entry, ctrl, "indoor"),
+                DewPt(entry, ctrl, "outdoor"),
+            ]
+        )
     async_add_entities(entities, True)
 
 
@@ -224,7 +269,9 @@ class DiagMirror(SensorEntity):
 
     async def async_added_to_hass(self):
         self._unsub = async_track_state_change_event(
-            self.hass, [self._source_id], self._on_change,
+            self.hass,
+            [self._source_id],
+            self._on_change,
         )
 
     async def async_will_remove_from_hass(self):
@@ -257,9 +304,12 @@ class VentRec(_CtrlMixin, SensorEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         c = self._ctrl
         return {
-            "ah_indoor": c.ah_indoor, "ah_outdoor": c.ah_outdoor,
-            "ah_diff": c.ah_diff, "dp_indoor": c.dp_indoor,
-            "dp_outdoor": c.dp_outdoor, "is_raining": c.is_raining,
+            "ah_indoor": c.ah_indoor,
+            "ah_outdoor": c.ah_outdoor,
+            "ah_diff": c.ah_diff,
+            "dp_indoor": c.dp_indoor,
+            "dp_outdoor": c.dp_outdoor,
+            "is_raining": c.is_raining,
         }
 
 

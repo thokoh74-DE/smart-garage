@@ -1,4 +1,5 @@
 """Binary sensor platform – ventilation active, actor reachable."""
+
 from __future__ import annotations
 
 from homeassistant.components.binary_sensor import (

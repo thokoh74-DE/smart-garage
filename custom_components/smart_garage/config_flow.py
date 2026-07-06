@@ -1,53 +1,53 @@
 """Config flow with menu-based options for Smart Garage."""
+
 from __future__ import annotations
 
 from typing import Any
 
 import voluptuous as vol
-
-from homeassistant.config_entries import ConfigFlow, ConfigEntry, OptionsFlow
+from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow
 from homeassistant.core import callback
 from homeassistant.helpers import selector
 
 from .const import (
-    DOMAIN,
-    CONF_NAME,
-    CONF_CONTROL_SWITCH,
-    CONF_PULSE_DURATION_MS,
-    CONF_PULSE_DELAY_S,
+    CONF_AH_DIFF_THRESHOLD,
     CONF_CLOSED_SENSOR,
-    CONF_OPEN_SENSOR,
     CONF_CLOSED_SENSOR_INVERT,
-    CONF_OPEN_SENSOR_INVERT,
-    CONF_VIBRATION_SENSOR,
-    CONF_TRAVEL_TIME_S,
+    CONF_CONTROL_SWITCH,
+    CONF_ENABLE_VENTILATION,
     CONF_EXTERNAL_BUTTON,
+    CONF_HUMIDITY_THRESHOLD,
+    CONF_INDOOR_HUMIDITY_SENSOR,
+    CONF_INDOOR_TEMP_SENSOR,
+    CONF_NAME,
+    CONF_NOTIFY_SERVICE,
+    CONF_OPEN_SENSOR,
+    CONF_OPEN_SENSOR_INVERT,
+    CONF_OUTDOOR_HUMIDITY_SENSOR,
+    CONF_OUTDOOR_TEMP_SENSOR,
+    CONF_PRESENCE_ENTITY,
+    CONF_PULSE_DELAY_S,
+    CONF_PULSE_DURATION_MS,
+    CONF_RAIN_CLOSE_DELAY_MIN,
+    CONF_RAIN_SENSOR,
+    CONF_SAFETY_CLOSE_DELAY_S,
     CONF_SAFETY_ENABLED,
     CONF_SAFETY_VIBRATION_S,
-    CONF_SAFETY_CLOSE_DELAY_S,
-    CONF_NOTIFY_SERVICE,
-    CONF_ENABLE_VENTILATION,
-    CONF_INDOOR_TEMP_SENSOR,
-    CONF_INDOOR_HUMIDITY_SENSOR,
-    CONF_OUTDOOR_TEMP_SENSOR,
-    CONF_OUTDOOR_HUMIDITY_SENSOR,
-    CONF_RAIN_SENSOR,
-    CONF_HUMIDITY_THRESHOLD,
-    CONF_AH_DIFF_THRESHOLD,
-    CONF_VENTILATION_OPEN_S,
+    CONF_TRAVEL_TIME_S,
     CONF_VENTILATION_CHECK_INTERVAL,
-    CONF_PRESENCE_ENTITY,
-    CONF_RAIN_CLOSE_DELAY_MIN,
-    DEFAULT_PULSE_DURATION_MS,
-    DEFAULT_PULSE_DELAY_S,
-    DEFAULT_TRAVEL_TIME_S,
-    DEFAULT_SAFETY_VIBRATION_S,
-    DEFAULT_SAFETY_CLOSE_DELAY_S,
-    DEFAULT_HUMIDITY_THRESHOLD,
+    CONF_VENTILATION_OPEN_S,
+    CONF_VIBRATION_SENSOR,
     DEFAULT_AH_DIFF_THRESHOLD,
-    DEFAULT_VENTILATION_OPEN_S,
-    DEFAULT_VENTILATION_CHECK_INTERVAL,
+    DEFAULT_HUMIDITY_THRESHOLD,
+    DEFAULT_PULSE_DELAY_S,
+    DEFAULT_PULSE_DURATION_MS,
     DEFAULT_RAIN_CLOSE_DELAY_MIN,
+    DEFAULT_SAFETY_CLOSE_DELAY_S,
+    DEFAULT_SAFETY_VIBRATION_S,
+    DEFAULT_TRAVEL_TIME_S,
+    DEFAULT_VENTILATION_CHECK_INTERVAL,
+    DEFAULT_VENTILATION_OPEN_S,
+    DOMAIN,
 )
 
 _SUG = {
@@ -67,18 +67,18 @@ _SUG = {
 
 def _e(d):
     """Create entity selector."""
-    return selector.EntitySelector(
-        selector.EntitySelectorConfig(domain=d if isinstance(d, list) else [d])
-    )
+    return selector.EntitySelector(selector.EntitySelectorConfig(domain=d if isinstance(d, list) else [d]))
 
 
 def _n(mn, mx, s, u, m="box"):
     """Create number selector."""
     return selector.NumberSelector(
         selector.NumberSelectorConfig(
-            min=mn, max=mx, step=s, unit_of_measurement=u,
-            mode=selector.NumberSelectorMode.BOX if m == "box"
-            else selector.NumberSelectorMode.SLIDER,
+            min=mn,
+            max=mx,
+            step=s,
+            unit_of_measurement=u,
+            mode=selector.NumberSelectorMode.BOX if m == "box" else selector.NumberSelectorMode.SLIDER,
         )
     )
 
@@ -113,15 +113,14 @@ class SmartGarageConfigFlow(ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="user",
-            data_schema=vol.Schema({
-                vol.Required(CONF_NAME, default=dn): str,
-                vol.Required(CONF_CONTROL_SWITCH,
-                             description=_s(CONF_CONTROL_SWITCH)): _e(["switch", "button"]),
-                vol.Optional(CONF_PULSE_DURATION_MS,
-                             default=DEFAULT_PULSE_DURATION_MS): _n(100, 5000, 50, "ms"),
-                vol.Optional(CONF_PULSE_DELAY_S,
-                             default=DEFAULT_PULSE_DELAY_S): _n(0.5, 10, 0.5, "s", "slider"),
-            }),
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_NAME, default=dn): str,
+                    vol.Required(CONF_CONTROL_SWITCH, description=_s(CONF_CONTROL_SWITCH)): _e(["switch", "button"]),
+                    vol.Optional(CONF_PULSE_DURATION_MS, default=DEFAULT_PULSE_DURATION_MS): _n(100, 5000, 50, "ms"),
+                    vol.Optional(CONF_PULSE_DELAY_S, default=DEFAULT_PULSE_DELAY_S): _n(0.5, 10, 0.5, "s", "slider"),
+                }
+            ),
         )
 
     async def async_step_sensors(self, ui: dict[str, Any] | None = None):
@@ -131,15 +130,19 @@ class SmartGarageConfigFlow(ConfigFlow, domain=DOMAIN):
             return await self.async_step_safety()
         return self.async_show_form(
             step_id="sensors",
-            data_schema=vol.Schema({
-                vol.Optional(CONF_CLOSED_SENSOR, description=_s(CONF_CLOSED_SENSOR)): _e("binary_sensor"),
-                vol.Optional(CONF_CLOSED_SENSOR_INVERT, default=True): selector.BooleanSelector(),
-                vol.Optional(CONF_OPEN_SENSOR, description=_s(CONF_OPEN_SENSOR)): _e("binary_sensor"),
-                vol.Optional(CONF_OPEN_SENSOR_INVERT, default=False): selector.BooleanSelector(),
-                vol.Optional(CONF_VIBRATION_SENSOR, description=_s(CONF_VIBRATION_SENSOR)): _e("binary_sensor"),
-                vol.Optional(CONF_TRAVEL_TIME_S, default=DEFAULT_TRAVEL_TIME_S): _n(5, 60, 1, "s", "slider"),
-                vol.Optional(CONF_EXTERNAL_BUTTON, description=_s(CONF_EXTERNAL_BUTTON)): _e(["event", "binary_sensor"]),
-            }),
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(CONF_CLOSED_SENSOR, description=_s(CONF_CLOSED_SENSOR)): _e("binary_sensor"),
+                    vol.Optional(CONF_CLOSED_SENSOR_INVERT, default=True): selector.BooleanSelector(),
+                    vol.Optional(CONF_OPEN_SENSOR, description=_s(CONF_OPEN_SENSOR)): _e("binary_sensor"),
+                    vol.Optional(CONF_OPEN_SENSOR_INVERT, default=False): selector.BooleanSelector(),
+                    vol.Optional(CONF_VIBRATION_SENSOR, description=_s(CONF_VIBRATION_SENSOR)): _e("binary_sensor"),
+                    vol.Optional(CONF_TRAVEL_TIME_S, default=DEFAULT_TRAVEL_TIME_S): _n(5, 60, 1, "s", "slider"),
+                    vol.Optional(CONF_EXTERNAL_BUTTON, description=_s(CONF_EXTERNAL_BUTTON)): _e(
+                        ["event", "binary_sensor"]
+                    ),
+                }
+            ),
         )
 
     async def async_step_safety(self, ui: dict[str, Any] | None = None):
@@ -149,12 +152,18 @@ class SmartGarageConfigFlow(ConfigFlow, domain=DOMAIN):
             return await self.async_step_ventilation()
         return self.async_show_form(
             step_id="safety",
-            data_schema=vol.Schema({
-                vol.Optional(CONF_SAFETY_ENABLED, default=True): selector.BooleanSelector(),
-                vol.Optional(CONF_SAFETY_VIBRATION_S, default=DEFAULT_SAFETY_VIBRATION_S): _n(3, 30, 1, "s", "slider"),
-                vol.Optional(CONF_SAFETY_CLOSE_DELAY_S, default=DEFAULT_SAFETY_CLOSE_DELAY_S): _n(5, 60, 5, "s", "slider"),
-                vol.Optional(CONF_NOTIFY_SERVICE, default=""): str,
-            }),
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(CONF_SAFETY_ENABLED, default=True): selector.BooleanSelector(),
+                    vol.Optional(CONF_SAFETY_VIBRATION_S, default=DEFAULT_SAFETY_VIBRATION_S): _n(
+                        3, 30, 1, "s", "slider"
+                    ),
+                    vol.Optional(CONF_SAFETY_CLOSE_DELAY_S, default=DEFAULT_SAFETY_CLOSE_DELAY_S): _n(
+                        5, 60, 5, "s", "slider"
+                    ),
+                    vol.Optional(CONF_NOTIFY_SERVICE, default=""): str,
+                }
+            ),
         )
 
     async def async_step_ventilation(self, ui: dict[str, Any] | None = None):
@@ -169,9 +178,11 @@ class SmartGarageConfigFlow(ConfigFlow, domain=DOMAIN):
             )
         return self.async_show_form(
             step_id="ventilation",
-            data_schema=vol.Schema({
-                vol.Optional(CONF_ENABLE_VENTILATION, default=True): selector.BooleanSelector(),
-            }),
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(CONF_ENABLE_VENTILATION, default=True): selector.BooleanSelector(),
+                }
+            ),
         )
 
     async def async_step_ventilation_sensors(self, ui: dict[str, Any] | None = None):
@@ -184,19 +195,35 @@ class SmartGarageConfigFlow(ConfigFlow, domain=DOMAIN):
             )
         return self.async_show_form(
             step_id="ventilation_sensors",
-            data_schema=vol.Schema({
-                vol.Optional(CONF_INDOOR_TEMP_SENSOR, description=_s(CONF_INDOOR_TEMP_SENSOR)): _e("sensor"),
-                vol.Optional(CONF_INDOOR_HUMIDITY_SENSOR, description=_s(CONF_INDOOR_HUMIDITY_SENSOR)): _e("sensor"),
-                vol.Optional(CONF_OUTDOOR_TEMP_SENSOR, description=_s(CONF_OUTDOOR_TEMP_SENSOR)): _e("sensor"),
-                vol.Optional(CONF_OUTDOOR_HUMIDITY_SENSOR, description=_s(CONF_OUTDOOR_HUMIDITY_SENSOR)): _e("sensor"),
-                vol.Optional(CONF_RAIN_SENSOR, description=_s(CONF_RAIN_SENSOR)): _e("binary_sensor"),
-                vol.Optional(CONF_HUMIDITY_THRESHOLD, default=DEFAULT_HUMIDITY_THRESHOLD): _n(30, 90, 1, "%", "slider"),
-                vol.Optional(CONF_AH_DIFF_THRESHOLD, default=DEFAULT_AH_DIFF_THRESHOLD): _n(0.5, 15, 0.5, "g/m³"),
-                vol.Optional(CONF_VENTILATION_OPEN_S, default=DEFAULT_VENTILATION_OPEN_S): _n(0.5, 10, 0.5, "s", "slider"),
-                vol.Optional(CONF_VENTILATION_CHECK_INTERVAL, default=DEFAULT_VENTILATION_CHECK_INTERVAL): _n(5, 60, 5, "min", "slider"),
-                vol.Optional(CONF_PRESENCE_ENTITY, description=_s(CONF_PRESENCE_ENTITY)): _e(["group", "person", "binary_sensor"]),
-                vol.Optional(CONF_RAIN_CLOSE_DELAY_MIN, default=DEFAULT_RAIN_CLOSE_DELAY_MIN): _n(0, 15, 1, "min", "slider"),
-            }),
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(CONF_INDOOR_TEMP_SENSOR, description=_s(CONF_INDOOR_TEMP_SENSOR)): _e("sensor"),
+                    vol.Optional(CONF_INDOOR_HUMIDITY_SENSOR, description=_s(CONF_INDOOR_HUMIDITY_SENSOR)): _e(
+                        "sensor"
+                    ),
+                    vol.Optional(CONF_OUTDOOR_TEMP_SENSOR, description=_s(CONF_OUTDOOR_TEMP_SENSOR)): _e("sensor"),
+                    vol.Optional(CONF_OUTDOOR_HUMIDITY_SENSOR, description=_s(CONF_OUTDOOR_HUMIDITY_SENSOR)): _e(
+                        "sensor"
+                    ),
+                    vol.Optional(CONF_RAIN_SENSOR, description=_s(CONF_RAIN_SENSOR)): _e("binary_sensor"),
+                    vol.Optional(CONF_HUMIDITY_THRESHOLD, default=DEFAULT_HUMIDITY_THRESHOLD): _n(
+                        30, 90, 1, "%", "slider"
+                    ),
+                    vol.Optional(CONF_AH_DIFF_THRESHOLD, default=DEFAULT_AH_DIFF_THRESHOLD): _n(0.5, 15, 0.5, "g/m³"),
+                    vol.Optional(CONF_VENTILATION_OPEN_S, default=DEFAULT_VENTILATION_OPEN_S): _n(
+                        0.5, 10, 0.5, "s", "slider"
+                    ),
+                    vol.Optional(CONF_VENTILATION_CHECK_INTERVAL, default=DEFAULT_VENTILATION_CHECK_INTERVAL): _n(
+                        5, 60, 5, "min", "slider"
+                    ),
+                    vol.Optional(CONF_PRESENCE_ENTITY, description=_s(CONF_PRESENCE_ENTITY)): _e(
+                        ["group", "person", "binary_sensor"]
+                    ),
+                    vol.Optional(CONF_RAIN_CLOSE_DELAY_MIN, default=DEFAULT_RAIN_CLOSE_DELAY_MIN): _n(
+                        0, 15, 1, "min", "slider"
+                    ),
+                }
+            ),
         )
 
     @staticmethod
@@ -235,38 +262,78 @@ class SmartGarageOptionsFlow(OptionsFlow):
         if ui:
             self._data.update(ui)
             return self._save()
-        return self.async_show_form(step_id="opt_basic", data_schema=vol.Schema({
-            vol.Required(CONF_CONTROL_SWITCH, default=self._d(CONF_CONTROL_SWITCH)): _e(["switch", "button"]),
-            vol.Optional(CONF_PULSE_DURATION_MS, default=self._d(CONF_PULSE_DURATION_MS, DEFAULT_PULSE_DURATION_MS)): _n(100, 5000, 50, "ms"),
-            vol.Optional(CONF_PULSE_DELAY_S, default=self._d(CONF_PULSE_DELAY_S, DEFAULT_PULSE_DELAY_S)): _n(0.5, 10, 0.5, "s", "slider"),
-        }))
+        return self.async_show_form(
+            step_id="opt_basic",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_CONTROL_SWITCH, default=self._d(CONF_CONTROL_SWITCH)): _e(["switch", "button"]),
+                    vol.Optional(
+                        CONF_PULSE_DURATION_MS, default=self._d(CONF_PULSE_DURATION_MS, DEFAULT_PULSE_DURATION_MS)
+                    ): _n(100, 5000, 50, "ms"),
+                    vol.Optional(CONF_PULSE_DELAY_S, default=self._d(CONF_PULSE_DELAY_S, DEFAULT_PULSE_DELAY_S)): _n(
+                        0.5, 10, 0.5, "s", "slider"
+                    ),
+                }
+            ),
+        )
 
     async def async_step_opt_sensors(self, ui=None):
         """Position sensors."""
         if ui:
             self._data.update(ui)
             return self._save()
-        return self.async_show_form(step_id="opt_sensors", data_schema=vol.Schema({
-            vol.Optional(CONF_CLOSED_SENSOR, description={"suggested_value": self._d(CONF_CLOSED_SENSOR)}): _e("binary_sensor"),
-            vol.Optional(CONF_CLOSED_SENSOR_INVERT, default=self._d(CONF_CLOSED_SENSOR_INVERT, True)): selector.BooleanSelector(),
-            vol.Optional(CONF_OPEN_SENSOR, description={"suggested_value": self._d(CONF_OPEN_SENSOR)}): _e("binary_sensor"),
-            vol.Optional(CONF_OPEN_SENSOR_INVERT, default=self._d(CONF_OPEN_SENSOR_INVERT, False)): selector.BooleanSelector(),
-            vol.Optional(CONF_VIBRATION_SENSOR, description={"suggested_value": self._d(CONF_VIBRATION_SENSOR)}): _e("binary_sensor"),
-            vol.Optional(CONF_TRAVEL_TIME_S, default=self._d(CONF_TRAVEL_TIME_S, DEFAULT_TRAVEL_TIME_S)): _n(5, 60, 1, "s", "slider"),
-            vol.Optional(CONF_EXTERNAL_BUTTON, description={"suggested_value": self._d(CONF_EXTERNAL_BUTTON)}): _e(["event", "binary_sensor"]),
-        }))
+        return self.async_show_form(
+            step_id="opt_sensors",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(CONF_CLOSED_SENSOR, description={"suggested_value": self._d(CONF_CLOSED_SENSOR)}): _e(
+                        "binary_sensor"
+                    ),
+                    vol.Optional(
+                        CONF_CLOSED_SENSOR_INVERT, default=self._d(CONF_CLOSED_SENSOR_INVERT, True)
+                    ): selector.BooleanSelector(),
+                    vol.Optional(CONF_OPEN_SENSOR, description={"suggested_value": self._d(CONF_OPEN_SENSOR)}): _e(
+                        "binary_sensor"
+                    ),
+                    vol.Optional(
+                        CONF_OPEN_SENSOR_INVERT, default=self._d(CONF_OPEN_SENSOR_INVERT, False)
+                    ): selector.BooleanSelector(),
+                    vol.Optional(
+                        CONF_VIBRATION_SENSOR, description={"suggested_value": self._d(CONF_VIBRATION_SENSOR)}
+                    ): _e("binary_sensor"),
+                    vol.Optional(CONF_TRAVEL_TIME_S, default=self._d(CONF_TRAVEL_TIME_S, DEFAULT_TRAVEL_TIME_S)): _n(
+                        5, 60, 1, "s", "slider"
+                    ),
+                    vol.Optional(
+                        CONF_EXTERNAL_BUTTON, description={"suggested_value": self._d(CONF_EXTERNAL_BUTTON)}
+                    ): _e(["event", "binary_sensor"]),
+                }
+            ),
+        )
 
     async def async_step_opt_safety(self, ui=None):
         """Safety settings."""
         if ui:
             self._data.update(ui)
             return self._save()
-        return self.async_show_form(step_id="opt_safety", data_schema=vol.Schema({
-            vol.Optional(CONF_SAFETY_ENABLED, default=self._d(CONF_SAFETY_ENABLED, True)): selector.BooleanSelector(),
-            vol.Optional(CONF_SAFETY_VIBRATION_S, default=self._d(CONF_SAFETY_VIBRATION_S, DEFAULT_SAFETY_VIBRATION_S)): _n(3, 30, 1, "s", "slider"),
-            vol.Optional(CONF_SAFETY_CLOSE_DELAY_S, default=self._d(CONF_SAFETY_CLOSE_DELAY_S, DEFAULT_SAFETY_CLOSE_DELAY_S)): _n(5, 60, 5, "s", "slider"),
-            vol.Optional(CONF_NOTIFY_SERVICE, default=self._d(CONF_NOTIFY_SERVICE, "")): str,
-        }))
+        return self.async_show_form(
+            step_id="opt_safety",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        CONF_SAFETY_ENABLED, default=self._d(CONF_SAFETY_ENABLED, True)
+                    ): selector.BooleanSelector(),
+                    vol.Optional(
+                        CONF_SAFETY_VIBRATION_S, default=self._d(CONF_SAFETY_VIBRATION_S, DEFAULT_SAFETY_VIBRATION_S)
+                    ): _n(3, 30, 1, "s", "slider"),
+                    vol.Optional(
+                        CONF_SAFETY_CLOSE_DELAY_S,
+                        default=self._d(CONF_SAFETY_CLOSE_DELAY_S, DEFAULT_SAFETY_CLOSE_DELAY_S),
+                    ): _n(5, 60, 5, "s", "slider"),
+                    vol.Optional(CONF_NOTIFY_SERVICE, default=self._d(CONF_NOTIFY_SERVICE, "")): str,
+                }
+            ),
+        )
 
     async def async_step_opt_ventilation(self, ui=None):
         """Ventilation toggle."""
@@ -275,34 +342,77 @@ class SmartGarageOptionsFlow(OptionsFlow):
             if ui.get(CONF_ENABLE_VENTILATION):
                 return await self.async_step_opt_vent_sensors()
             for k in [
-                CONF_INDOOR_TEMP_SENSOR, CONF_INDOOR_HUMIDITY_SENSOR,
-                CONF_OUTDOOR_TEMP_SENSOR, CONF_OUTDOOR_HUMIDITY_SENSOR,
-                CONF_RAIN_SENSOR, CONF_HUMIDITY_THRESHOLD,
-                CONF_AH_DIFF_THRESHOLD, CONF_VENTILATION_OPEN_S,
-                CONF_VENTILATION_CHECK_INTERVAL, CONF_PRESENCE_ENTITY,
+                CONF_INDOOR_TEMP_SENSOR,
+                CONF_INDOOR_HUMIDITY_SENSOR,
+                CONF_OUTDOOR_TEMP_SENSOR,
+                CONF_OUTDOOR_HUMIDITY_SENSOR,
+                CONF_RAIN_SENSOR,
+                CONF_HUMIDITY_THRESHOLD,
+                CONF_AH_DIFF_THRESHOLD,
+                CONF_VENTILATION_OPEN_S,
+                CONF_VENTILATION_CHECK_INTERVAL,
+                CONF_PRESENCE_ENTITY,
                 CONF_RAIN_CLOSE_DELAY_MIN,
             ]:
                 self._data.pop(k, None)
             return self._save()
-        return self.async_show_form(step_id="opt_ventilation", data_schema=vol.Schema({
-            vol.Optional(CONF_ENABLE_VENTILATION, default=self._d(CONF_ENABLE_VENTILATION, False)): selector.BooleanSelector(),
-        }))
+        return self.async_show_form(
+            step_id="opt_ventilation",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        CONF_ENABLE_VENTILATION, default=self._d(CONF_ENABLE_VENTILATION, False)
+                    ): selector.BooleanSelector(),
+                }
+            ),
+        )
 
     async def async_step_opt_vent_sensors(self, ui=None):
         """Ventilation sensor config."""
         if ui:
             self._data.update(ui)
             return self._save()
-        return self.async_show_form(step_id="opt_vent_sensors", data_schema=vol.Schema({
-            vol.Optional(CONF_INDOOR_TEMP_SENSOR, description={"suggested_value": self._d(CONF_INDOOR_TEMP_SENSOR)}): _e("sensor"),
-            vol.Optional(CONF_INDOOR_HUMIDITY_SENSOR, description={"suggested_value": self._d(CONF_INDOOR_HUMIDITY_SENSOR)}): _e("sensor"),
-            vol.Optional(CONF_OUTDOOR_TEMP_SENSOR, description={"suggested_value": self._d(CONF_OUTDOOR_TEMP_SENSOR)}): _e("sensor"),
-            vol.Optional(CONF_OUTDOOR_HUMIDITY_SENSOR, description={"suggested_value": self._d(CONF_OUTDOOR_HUMIDITY_SENSOR)}): _e("sensor"),
-            vol.Optional(CONF_RAIN_SENSOR, description={"suggested_value": self._d(CONF_RAIN_SENSOR)}): _e("binary_sensor"),
-            vol.Optional(CONF_HUMIDITY_THRESHOLD, default=self._d(CONF_HUMIDITY_THRESHOLD, DEFAULT_HUMIDITY_THRESHOLD)): _n(30, 90, 1, "%", "slider"),
-            vol.Optional(CONF_AH_DIFF_THRESHOLD, default=self._d(CONF_AH_DIFF_THRESHOLD, DEFAULT_AH_DIFF_THRESHOLD)): _n(0.5, 15, 0.5, "g/m³"),
-            vol.Optional(CONF_VENTILATION_OPEN_S, default=self._d(CONF_VENTILATION_OPEN_S, DEFAULT_VENTILATION_OPEN_S)): _n(0.5, 10, 0.5, "s", "slider"),
-            vol.Optional(CONF_VENTILATION_CHECK_INTERVAL, default=self._d(CONF_VENTILATION_CHECK_INTERVAL, DEFAULT_VENTILATION_CHECK_INTERVAL)): _n(5, 60, 5, "min", "slider"),
-            vol.Optional(CONF_PRESENCE_ENTITY, description={"suggested_value": self._d(CONF_PRESENCE_ENTITY)}): _e(["group", "person", "binary_sensor"]),
-            vol.Optional(CONF_RAIN_CLOSE_DELAY_MIN, default=self._d(CONF_RAIN_CLOSE_DELAY_MIN, DEFAULT_RAIN_CLOSE_DELAY_MIN)): _n(0, 15, 1, "min", "slider"),
-        }))
+        return self.async_show_form(
+            step_id="opt_vent_sensors",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        CONF_INDOOR_TEMP_SENSOR, description={"suggested_value": self._d(CONF_INDOOR_TEMP_SENSOR)}
+                    ): _e("sensor"),
+                    vol.Optional(
+                        CONF_INDOOR_HUMIDITY_SENSOR,
+                        description={"suggested_value": self._d(CONF_INDOOR_HUMIDITY_SENSOR)},
+                    ): _e("sensor"),
+                    vol.Optional(
+                        CONF_OUTDOOR_TEMP_SENSOR, description={"suggested_value": self._d(CONF_OUTDOOR_TEMP_SENSOR)}
+                    ): _e("sensor"),
+                    vol.Optional(
+                        CONF_OUTDOOR_HUMIDITY_SENSOR,
+                        description={"suggested_value": self._d(CONF_OUTDOOR_HUMIDITY_SENSOR)},
+                    ): _e("sensor"),
+                    vol.Optional(CONF_RAIN_SENSOR, description={"suggested_value": self._d(CONF_RAIN_SENSOR)}): _e(
+                        "binary_sensor"
+                    ),
+                    vol.Optional(
+                        CONF_HUMIDITY_THRESHOLD, default=self._d(CONF_HUMIDITY_THRESHOLD, DEFAULT_HUMIDITY_THRESHOLD)
+                    ): _n(30, 90, 1, "%", "slider"),
+                    vol.Optional(
+                        CONF_AH_DIFF_THRESHOLD, default=self._d(CONF_AH_DIFF_THRESHOLD, DEFAULT_AH_DIFF_THRESHOLD)
+                    ): _n(0.5, 15, 0.5, "g/m³"),
+                    vol.Optional(
+                        CONF_VENTILATION_OPEN_S, default=self._d(CONF_VENTILATION_OPEN_S, DEFAULT_VENTILATION_OPEN_S)
+                    ): _n(0.5, 10, 0.5, "s", "slider"),
+                    vol.Optional(
+                        CONF_VENTILATION_CHECK_INTERVAL,
+                        default=self._d(CONF_VENTILATION_CHECK_INTERVAL, DEFAULT_VENTILATION_CHECK_INTERVAL),
+                    ): _n(5, 60, 5, "min", "slider"),
+                    vol.Optional(
+                        CONF_PRESENCE_ENTITY, description={"suggested_value": self._d(CONF_PRESENCE_ENTITY)}
+                    ): _e(["group", "person", "binary_sensor"]),
+                    vol.Optional(
+                        CONF_RAIN_CLOSE_DELAY_MIN,
+                        default=self._d(CONF_RAIN_CLOSE_DELAY_MIN, DEFAULT_RAIN_CLOSE_DELAY_MIN),
+                    ): _n(0, 15, 1, "min", "slider"),
+                }
+            ),
+        )

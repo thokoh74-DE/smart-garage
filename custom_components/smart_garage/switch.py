@@ -1,4 +1,5 @@
 """Switch platform – ventilation auto, rain auto close, manual ventilation."""
+
 from __future__ import annotations
 
 from homeassistant.components.switch import SwitchEntity
