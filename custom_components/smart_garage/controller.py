@@ -195,6 +195,8 @@ class SmartGarageController:
         self._last_opened_at: datetime | None = None
         self._safety_pending: bool = False
         self._command_seq: int = 0
+        self._move_start_position: int = 0
+        self._explicit_full_open: bool = False
 
         # Ventilation
         self.ah_indoor: float | None = None
@@ -396,6 +398,9 @@ class SmartGarageController:
             new_state,
         )
         if new_state in (DOOR_OPENING, DOOR_CLOSING):
+            # Capture the position we are moving FROM, so a brief
+            # multi-pulse reversal doesn't reset the baseline to 0/100.
+            self._move_start_position = self.position
             self._move_start = dt_util.utcnow()
         else:
             self._estimate_position()
@@ -406,25 +411,25 @@ class SmartGarageController:
         return new_state
 
     def _estimate_position(self) -> None:
-        """Estimate position based on elapsed travel time."""
+        """Estimate position based on elapsed travel time from the baseline."""
         if self._move_start is None:
             return
         elapsed = (dt_util.utcnow() - self._move_start).total_seconds()
-        frac = min(elapsed / self.travel_time, 1.0)
+        delta = (elapsed / self.travel_time) * 100
         state = self.door_state
         if state in (DOOR_OPENING, DOOR_STOPPED_UP, DOOR_VENTILATING):
-            self.position = max(int(frac * 100), 1)
+            self.position = min(max(int(self._move_start_position + delta), 1), 100)
         elif state in (DOOR_CLOSING, DOOR_STOPPED_DOWN):
-            self.position = max(int((1.0 - frac) * 100), 1)
+            self.position = max(int(self._move_start_position - delta), 1)
 
     def get_live_position(self) -> int:
-        """Calculate dynamic position during movement."""
+        """Calculate dynamic position during movement from the baseline."""
         if self.door_state in (DOOR_OPENING, DOOR_CLOSING) and self._move_start:
             elapsed = (dt_util.utcnow() - self._move_start).total_seconds()
-            frac = min(elapsed / self.travel_time, 1.0)
+            delta = (elapsed / self.travel_time) * 100
             if self.door_state == DOOR_OPENING:
-                return max(int(frac * 100), 1)
-            return max(int((1.0 - frac) * 100), 0)
+                return min(max(int(self._move_start_position + delta), 1), 100)
+            return max(int(self._move_start_position - delta), 0)
         return self.position
 
     # -- Pulse control --------------------------------------------------
@@ -505,6 +510,10 @@ class SmartGarageController:
     async def async_open(self) -> None:
         """Open the garage door."""
         self._command_seq += 1
+        # This is an explicit, user-initiated (or automation-initiated via
+        # this integration's own service call) open command. It must never
+        # be treated as an accidental opening, even from a ventilating state.
+        self._explicit_full_open = True
         state = self.door_state
         self.last_command = "up"
         if state in (DOOR_OPEN, DOOR_OPENING):
@@ -539,6 +548,9 @@ class SmartGarageController:
     async def async_stop(self) -> None:
         """Stop the garage door."""
         self._command_seq += 1
+        # Once movement is deliberately halted, any further unexpected
+        # movement toward fully open should be treated as unexpected again.
+        self._explicit_full_open = False
         state = self.door_state
         self.last_command = "stop"
         if state in (
@@ -556,6 +568,10 @@ class SmartGarageController:
     async def async_open_ventilation(self) -> None:
         """Open the door to ventilation position."""
         self._command_seq += 1
+        # This call intends only a small gap. Explicitly mark that we are
+        # NOT expecting a full open, so the safety check stays active if
+        # the door overshoots far past the ventilation gap.
+        self._explicit_full_open = False
         if self.door_state != DOOR_CLOSED:
             return
         self.last_command = "ventilate"
@@ -632,17 +648,19 @@ class SmartGarageController:
             if new.state in (STATE_UNAVAILABLE, STATE_UNKNOWN):
                 return
             if self._sensor_active(eid, self.open_invert):
-                if self.is_ventilating and self.safety_enabled:
+                if self.is_ventilating and self.safety_enabled and not self._explicit_full_open:
                     self._trigger_accidental_open_safety()
                 else:
                     self._do_sync(DOOR_OPEN, 100)
+                    self.is_ventilating = False
+                    self._explicit_full_open = False
                     self._cancel_travel_timer()
                 self._notify_update()
 
         elif eid == self.vibration_sensor:
             is_on = new.state == STATE_ON
             was_on = old and old.state == STATE_ON
-            if is_on and not was_on and self.is_ventilating and self.safety_enabled:
+            if is_on and not was_on and self.is_ventilating and self.safety_enabled and not self._explicit_full_open:
                 self._schedule_vibration_safety()
             if not is_on and was_on:
                 if self.closed_sensor and self._sensor_active(self.closed_sensor, self.closed_invert):
@@ -682,6 +700,8 @@ class SmartGarageController:
             return
         _LOGGER.info("Smart Garage: External button press")
         self.last_command = "manual"
+        # A physical button press is always a deliberate user action.
+        self._explicit_full_open = True
         self._advance_pulse()
         state = self.door_state
         if state == DOOR_OPENING:
@@ -702,7 +722,7 @@ class SmartGarageController:
         @callback
         def _check(_now):
             self._safety_close_unsub = None
-            if not self.is_ventilating:
+            if not self.is_ventilating or self._explicit_full_open:
                 return
             if self.vibration_sensor:
                 vib = self.hass.states.get(self.vibration_sensor)
