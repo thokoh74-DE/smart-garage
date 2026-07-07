@@ -2,148 +2,351 @@
 
 🇬🇧 [English Version](README.md)
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
-[![GitHub Release](https://img.shields.io/github/v/release/thokoh74-DE/smart-garage)](https://github.com/thokoh74-DE/smart-garage/releases)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+<!-- Badges -->
+<p align="center">
 
-<img src="brand/icon.png" width="128" alt="Smart Garage Logo"/>
+[![HACS Custom][hacs-badge]][hacs-url]
+[![GitHub Release][release-badge]][release-url]
+[![License][license-badge]][license-url]
+[![Hassfest][hassfest-badge]][hassfest-url]
+[![HACS Validation][hacs-val-badge]][hacs-val-url]
+[![CodeQL][codeql-badge]][codeql-url]
+[![Downloads][downloads-badge]][release-url]
 
-Eine Home Assistant Custom Integration für **impulsgesteuerte Garagentore** – also Tore, bei denen ein einzelner Relaisimpuls den Zyklus *Auf → Stop → Zu → Stop → Auf* durchläuft.
+</p>
 
-Entwickelt für **Homematic IP** Hardware (HmIP-PCBS, HmIP-FCI6, HmIP-STV), funktioniert aber mit jedem impulsgesteuerten Garagentorantrieb.
+<!-- Logo -->
+<p align="center">
+  <img src="brand/logo.png" width="300" alt="Smart Garage – Öffnen · Schließen · Belüften · Überwachen"/>
+</p>
 
-## Funktionen
+<p align="center">
+  <b>Home Assistant Custom Integration für impulsgesteuerte Garagentore</b><br>
+  <sub>Öffnen · Schließen · Belüften · Überwachen — vollautomatisch, vollständig lokal</sub>
+</p>
 
-### 🚪 Cover Entity mit Impulszählung
-- **Impulszählende State Machine** – verfolgt die Torposition durch Zählen der Relaisimpulse ab dem letzten bekannten Synchronisierungspunkt (Endschalter)
-- **Zustandsspeicherung** über HA-Neustarts hinweg via `RestoreEntity`
-- **Live-Positionsberechnung** während der Fahrt basierend auf der konfigurierten Fahrzeit
-- **Erkennung externer Impulse** – erkennt physische Tasterbetätigung und Automationen
-- Unterstützt `Öffnen`, `Schließen`, `Stop` und `Position setzen`
+<!-- HACS Install Button -->
+<p align="center">
+  <a href="https://my.home-assistant.io/redirect/hacs_repository/?owner=thokoh74-DE&repository=smart-garage&category=integration">
+    <img src="https://my.home-assistant.io/badges/hacs_repository.svg" alt="In HACS öffnen" height="40"/>
+  </a>
+  &nbsp;&nbsp;
+  <a href="https://my.home-assistant.io/redirect/config_flow_start/?domain=smart_garage">
+    <img src="https://my.home-assistant.io/badges/config_flow_start.svg" alt="Integration hinzufügen" height="40"/>
+  </a>
+</p>
 
-### 🌬️ Lüftungssteuerung *(optional)*
-- Berechnet **absolute Luftfeuchtigkeit** und **Taupunkt** aus Temperatur-/Feuchte-Sensoren
-- Empfiehlt Lüftung, wenn die Innenfeuchte die Außenfeuchte um einen konfigurierbaren Schwellwert übersteigt
-- Öffnet das Tor automatisch in einen kleinen Lüftungsspalt (konfigurierbar, z.B. 2s ≈ 10 cm)
-- Berücksichtigt **Anwesenheit** (nur wenn jemand zuhause) und **Tageslicht** (Sonnenauf- bis -untergang)
-- **Manueller Lüftungsschalter** für direkte Steuerung
-- Voraussetzung: Temperatur- und Feuchte-Sensoren (innen + außen)
+---
 
-### 🌧️ Regen-Automatik *(optional)*
-- Schließt das Tor automatisch bei Regen
-- Konfigurierbare Verzögerung (Standard 4 Min.) – schließt nicht, wenn das Tor gerade erst geöffnet wurde
-- Push-Benachrichtigung vor dem Schließen
-- Voraussetzung: Regensensor (Binary Sensor)
+## 🏠 Was ist Smart Garage?
 
-### 🛡️ Sicherheit
-- **Versehentliches-Öffnen-Schutz** – erkennt, wenn sich das Tor deutlich über den Lüftungsspalt hinaus bewegt (bestätigt durch den oberen Endschalter oder anhaltende Vibration über einem konfigurierbaren Schwellwert) und schließt automatisch mit Benachrichtigung
-  - **Löst aus**, wenn die Lüftungsstellung automatisch (periodische Feuchte-Prüfung) oder über den manuellen Lüftungsschalter erreicht wurde und das Tor danach weit über den vorgesehenen Spalt hinaus weiterfährt
-  - **Löst nie aus** bei einem expliziten Öffnen-Befehl – ein Klick auf „Öffnen" in der UI, ein Service-Call oder das Drücken des physischen Garagentasters öffnet das Tor immer vollständig, ohne Fehlalarm, auch aus der Lüftungsstellung heraus
-- **Aktor-Erreichbarkeit** – warnt, wenn der Schaltaktor nicht erreichbar ist, während das Tor geöffnet ist
+Smart Garage steuert **impulsgesteuerte Garagentore** — also Tore, bei denen ein einzelner Relaisimpuls folgenden Zyklus durchläuft:
 
-### 📊 Diagnosesensoren
-Spiegel-Sensoren für Dashboard-Anzeige: Endschalter, Erschütterungssensor, Schaltaktor-Status, aktueller Zustand mit Position, letzter Fahrbefehl, letzter Befehl
+> **Auf → Stop → Zu → Stop → Auf → …**
 
-### 🌍 Zweisprachigkeit
-- Vollständige **deutsche** und **englische** UI-Übersetzungen
-- Entity-IDs verwenden immer englische Suffixe
-- Anzeigenamen folgen der HA-Systemsprache
+Anders als einfache Ein/Aus-Schalter verwendet Smart Garage eine **impulszählende State Machine**, die jederzeit weiß, wo das Tor steht — auch nach einem HA-Neustart, auch bei Bedienung über den physischen Taster, auch bei Stopp mitten in der Fahrt.
 
-## Voraussetzungen
+Entwickelt für **Homematic IP** Hardware, aber kompatibel mit **jedem impulsgesteuerten Garagentorantrieb**, der eine Home Assistant Switch- oder Button-Entity hat.
 
-| Komponente | Erforderlich | Zweck |
-|-----------|-------------|-------|
-| Switch- oder Button-Entity | ✅ Ja | Schaltet den Garagentorantrieb |
-| Endschalter (unten) | ⬜ Empfohlen | Bestätigt die geschlossene Position |
-| Endschalter (oben) | ⬜ Empfohlen | Bestätigt die geöffnete Position |
-| Erschütterungssensor | ⬜ Optional | Erkennt Torbewegung, ermöglicht Sicherheitsschutz |
-| Externer Taster | ⬜ Optional | Erkennt physische Tasterbetätigung |
-| Temp. + Feuchte (innen) | ⬜ Optional | Aktiviert Lüftungssteuerung |
-| Temp. + Feuchte (außen) | ⬜ Optional | Aktiviert Lüftungssteuerung |
-| Regensensor | ⬜ Optional | Aktiviert Regen-Automatik |
-| Anwesenheits-Entity | ⬜ Optional | Lüftung nur bei Anwesenheit |
-| Benachrichtigungs-Service | ⬜ Optional | Push-Nachrichten für Ereignisse |
+---
 
-> **Hinweis**: Die Lüftungsfunktionen sind nur verfügbar, wenn alle vier Klima-Sensoren (Innen-/Außen-Temperatur + Feuchte) konfiguriert sind. Die Regen-Automatik benötigt einen Regensensor. Werden diese Sensoren nicht konfiguriert, werden die entsprechenden Funktionen und Schalter einfach nicht erstellt.
+## ✨ Hauptfunktionen
 
-## Installation
+<table>
+<tr>
+<td width="60">🚪</td>
+<td><b>Impulsbasierte Torsteuerung</b><br>Impulszählende State Machine mit Sync-Punkten von Endschaltern. Kennt den exakten Torzustand jederzeit.</td>
+</tr>
+<tr>
+<td>📍</td>
+<td><b>Live-Position</b><br>Schätzt die Position während der Fahrt anhand der Fahrzeit. Zeigt „Position 45%" bei Stopp mitten in der Fahrt.</td>
+</tr>
+<tr>
+<td>💾</td>
+<td><b>Zustandsspeicherung</b><br>Überlebt HA-Neustarts. Stellt Sync-Zustand und Impulszähler über RestoreEntity wieder her.</td>
+</tr>
+<tr>
+<td>🌬️</td>
+<td><b>Lüftungssteuerung</b> (optional)<br>Öffnet das Tor automatisch einen kleinen Spalt basierend auf absoluter Luftfeuchtigkeit. Berücksichtigt Anwesenheit und Tageslicht. Manueller Schalter inklusive.</td>
+</tr>
+<tr>
+<td>🌧️</td>
+<td><b>Regen-Automatik</b> (optional)<br>Schließt das Tor bei Regen. Konfigurierbare Verzögerung. Push-Benachrichtigung vor dem Schließen.</td>
+</tr>
+<tr>
+<td>🛡️</td>
+<td><b>Versehentliches-Öffnen-Schutz</b><br>Erkennt über den Erschütterungssensor, wenn das Tor sich zu weit bewegt. Schließt automatisch mit Benachrichtigung.</td>
+</tr>
+<tr>
+<td>📡</td>
+<td><b>Aktor-Überwachung</b><br>Warnt, wenn der Schaltaktor nicht erreichbar ist und das Tor geöffnet ist. Alle Entities werden als „nicht verfügbar" markiert.</td>
+</tr>
+<tr>
+<td>🔘</td>
+<td><b>Externer Taster</b><br>Erkennt physische Tasterbetätigungen und aktualisiert die State Machine entsprechend.</td>
+</tr>
+<tr>
+<td>📊</td>
+<td><b>Diagnose</b><br>Vollständiger State-Dump als Download von der Geräteseite. Spiegel-Sensoren für Dashboard-Anzeige.</td>
+</tr>
+<tr>
+<td>🌍</td>
+<td><b>Zweisprachig</b><br>Vollständige Deutsch + Englisch Übersetzungen. Entity-IDs immer auf Englisch. Anzeigenamen folgen der HA-Spracheinstellung.</td>
+</tr>
+</table>
 
-### HACS (empfohlen)
+---
+
+## 📋 Voraussetzungen
+
+| Komponente | Erforderlich? | Zweck |
+|:-----------|:-------------:|:------|
+| **Switch- oder Button-Entity** | ✅ Erforderlich | Schaltet den Garagentorantrieb (z.B. HmIP-PCBS) |
+| Endschalter — unten | ⭐ Empfohlen | Bestätigt geschlossene Position (z.B. HmIP-FCI6 ch1) |
+| Endschalter — oben | ⭐ Empfohlen | Bestätigt geöffnete Position (z.B. HmIP-FCI6 ch2) |
+| Erschütterungssensor | 💡 Optional | Bewegungserkennung + Sicherheit (z.B. HmIP-STV) |
+| Externer Taster | 💡 Optional | Erkennung physischer Tasterbetätigung |
+| Temperatur + Feuchte — innen | 💡 Optional | Aktiviert Lüftungssteuerung |
+| Temperatur + Feuchte — außen | 💡 Optional | Aktiviert Lüftungssteuerung |
+| Regensensor | 💡 Optional | Aktiviert Regen-Automatik |
+| Anwesenheits-Entity | 💡 Optional | Lüftung nur bei Anwesenheit |
+| Benachrichtigungs-Service | 💡 Optional | Push-Nachrichten für Sicherheitsereignisse |
+
+> 💡 **Sanfte Degradierung**: Die Integration funktioniert auch nur mit einem Steuerungsschalter. Jeder optionale Sensor fügt Funktionen hinzu. Ohne Klima-Sensoren → keine Lüftung. Ohne Regensensor → keine Regen-Automatik. Die Entities für deaktivierte Funktionen werden einfach nicht erstellt.
+
+---
+
+## 📦 Installation
+
+### Über HACS (empfohlen)
+
+<a href="https://my.home-assistant.io/redirect/hacs_repository/?owner=thokoh74-DE&repository=smart-garage&category=integration">
+  <img src="https://my.home-assistant.io/badges/hacs_repository.svg" alt="In HACS öffnen"/>
+</a>
+
+**Oder manuell:**
 1. HACS öffnen → **Integrationen** → ⋮ → **Benutzerdefinierte Repositories**
-2. `https://github.com/thokoh74-DE/smart-garage` als **Integration** hinzufügen
-3. Nach "Smart Garage" suchen und installieren
-4. Home Assistant neustarten
+2. URL: `https://github.com/thokoh74-DE/smart-garage`
+3. Kategorie: **Integration**
+4. Nach **Smart Garage** suchen → Installieren → HA neustarten
 
-### Manuell
-1. `custom_components/smart_garage/` in deinen HA `config/custom_components/`-Ordner kopieren
-2. Home Assistant neustarten
+### Manuelle Installation
 
-## Einrichtung
+1. [Neuestes Release](https://github.com/thokoh74-DE/smart-garage/releases) herunterladen
+2. `custom_components/smart_garage/` nach `config/custom_components/` kopieren
+3. Home Assistant neustarten
 
-**Einstellungen → Geräte & Dienste → Integration hinzufügen → Smart Garage**
+---
 
-Der Setup-Assistent hat 5 Schritte:
-1. **Grundeinstellungen**: Name (wird Gerätename + Entity-Präfix), Steuerungsschalter, Impuls-Zeiten
-2. **Sensoren**: Endschalter, Erschütterungssensor, externer Taster *(alle optional)*
-3. **Sicherheit**: Versehentliches-Öffnen-Schutz, Vibrationsschwelle, Benachrichtigungs-Service
-4. **Lüftung**: Aktivieren/Deaktivieren
-5. **Klima-Sensoren**: Innen-/Außen-Temp. + Feuchte, Regensensor, Schwellwerte *(alle optional)*
+## ⚙️ Einrichtung
 
-Nach der Einrichtung kannst du über den **Menü-basierten Options-Flow** (Zahnrad-Symbol) einzelne Bereiche bearbeiten, ohne alle Einstellungen durchklicken zu müssen.
+<a href="https://my.home-assistant.io/redirect/config_flow_start/?domain=smart_garage">
+  <img src="https://my.home-assistant.io/badges/config_flow_start.svg" alt="Integration hinzufügen"/>
+</a>
 
-## Erzeugte Entities
+**Oder:** Einstellungen → Geräte & Dienste → Integration hinzufügen → **Smart Garage**
 
-| Entity | Typ | Bedingung |
-|--------|-----|-----------|
+### 5-Schritte-Assistent
+
+| Schritt | Was konfiguriert wird |
+|:-------:|:----------------------|
+| **1** | **Name** (wird Gerätename + Entity-Präfix), Steuerungsschalter, Impulszeiten |
+| **2** | Endschalter, Erschütterungssensor, externer Taster — *alles optional* |
+| **3** | Versehentliches-Öffnen-Schutz, Vibrationsschwelle, Benachrichtigungs-Service |
+| **4** | Lüftungssteuerung aktivieren oder deaktivieren |
+| **5** | Klima-Sensoren, Regensensor, Schwellwerte — *alles optional* |
+
+### Nachträgliche Konfiguration
+
+Nach der Einrichtung: ⚙️ Zahnrad-Symbol → **Menü mit 4 unabhängigen Bereichen**. Nur bearbeiten, was nötig ist.
+
+---
+
+## 📊 Entities
+
+### Steuerung
+
+| Entity | Typ | Erstellt |
+|:-------|:----|:---------|
 | *(Gerätename)* | `cover` | Immer |
-| Belüftung Automatik | `switch` | Lüftung aktiviert |
-| Regen Automatik | `switch` | Regensensor konfiguriert |
-| Manuelle Lüftung | `switch` | Lüftung aktiviert |
-| Lüftungsempfehlung | `sensor` | Klima-Sensoren konfiguriert |
-| Abs. Feuchte Innen/Außen | `sensor` | Klima-Sensoren konfiguriert |
-| Taupunkt Innen/Außen | `sensor` | Klima-Sensoren konfiguriert |
-| Belüftung aktiv | `binary_sensor` | Lüftung aktiviert |
+| Belüftung Automatik | `switch` | Bei aktivierter Lüftung |
+| Regen Automatik | `switch` | Bei konfiguriertem Regensensor |
+| Manuelle Lüftung | `switch` | Bei aktivierter Lüftung |
+
+### Sensoren
+
+| Entity | Typ | Erstellt |
+|:-------|:----|:---------|
+| Lüftungsempfehlung | `sensor` | Bei konfigurierten Klima-Sensoren |
+| Abs. Feuchte Innen / Außen | `sensor` | Bei konfigurierten Klima-Sensoren |
+| Taupunkt Innen / Außen | `sensor` | Bei konfigurierten Klima-Sensoren |
+| Belüftung aktiv | `binary_sensor` | Bei aktivierter Lüftung |
 | Aktor erreichbar | `binary_sensor` | Immer |
-| Aktueller Zustand | `sensor` (Diagnose) | Immer |
-| Letzter Fahrbefehl / Letzter Befehl | `sensor` (Diagnose) | Immer |
-| Endschalter unten/oben | `sensor` (Diagnose) | Wenn konfiguriert |
-| Erschütterungssensor | `sensor` (Diagnose) | Wenn konfiguriert |
-| Schaltaktor | `sensor` (Diagnose) | Immer |
 
-## Funktionsweise
+### Diagnose
 
-Der Impulsmotor durchläuft 4 Phasen pro Zyklus:
+| Entity | Typ | Beschreibung |
+|:-------|:----|:-------------|
+| Aktueller Zustand | `sensor` | Menschenlesbarer Zustand mit Position (z.B. „Position 45%") |
+| Letzter Fahrbefehl | `sensor` | Letzte Zustandsänderung (übersetzter Enum) |
+| Letzter Befehl | `sensor` | Letzter Benutzerbefehl (übersetzter Enum) |
+| Endschalter unten / oben | `sensor` | Spiegelt Hardware-Sensorstatus |
+| Erschütterungssensor | `sensor` | Spiegelt Hardware-Sensorstatus |
+| Schaltaktor | `sensor` | Spiegelt Hardware-Sensorstatus |
+
+---
+
+## 🔧 Funktionsweise
+
+### Der Impulsmotor-Zyklus
 
 ```
-Ab GESCHLOSSEN:  Impuls → Öffnet → Impuls → Stop → Impuls → Schließt → Impuls → Stop → ...
-Ab GEÖFFNET:     Impuls → Schließt → Impuls → Stop → Impuls → Öffnet → Impuls → Stop → ...
+Ab GESCHLOSSEN:
+  Impuls 1 → ÖFFNET       Impuls 2 → GESTOPPT
+  Impuls 3 → SCHLIEẞT     Impuls 4 → GESTOPPT
+  Impuls 5 → ÖFFNET       (Zyklus wiederholt sich)
+
+Ab GEÖFFNET:
+  Impuls 1 → SCHLIEẞT     Impuls 2 → GESTOPPT
+  Impuls 3 → ÖFFNET       Impuls 4 → GESTOPPT
+  Impuls 5 → SCHLIEẞT     (Zyklus wiederholt sich)
 ```
 
-Die Integration speichert einen **Sync-Zustand** (letzte bestätigte Position vom Endschalter) und einen **Impulszähler**. Der aktuelle Torzustand ergibt sich aus `Sync-Zustand + Impulszähler mod 4`.
+### Impulszählende State Machine
 
-Wenn ein Endschalter auslöst, wird der Zähler auf 0 zurückgesetzt. Sind Endschalter konfiguriert, nimmt die Integration **niemals** an, dass das Tor seine Endposition auf Basis der Fahrzeit erreicht hat – sie wartet auf die Sensorbestätigung.
+Die Integration speichert zwei Werte:
+- **Sync-Zustand** — letzte bestätigte Position vom Endschalter (`GESCHLOSSEN` oder `GEÖFFNET`)
+- **Impulszähler** — Anzahl Impulse seit dem letzten Sync
+
+Aktueller Torzustand = **`Sync-Zustand + (Impulszähler - 1) mod 4`**
+
+Wenn ein Endschalter auslöst → Zähler wird auf 0 zurückgesetzt (neuer Sync-Punkt).
 
 ### Positionsberechnung
 
-Die Position wird relativ zu einer **Basislinie berechnet, die zu Beginn jeder Bewegung erfasst wird** – nicht immer ausgehend von 0% oder 100%. Das ist wichtig bei wiederholten Stop-Umkehr-Zyklen: Öffnen, Stoppen, erneut Öffnen setzt die Berechnung korrekt an der zuletzt bekannten Position fort, statt sie auf eine volle 0–100%-Fahrt zurückzusetzen.
+Während der Fahrt: `Position = verstrichene_Zeit ÷ Fahrzeit × 100%`
 
-## Fehlerbehebung
+Sind Endschalter konfiguriert, nimmt die Integration **niemals** an, dass das Tor seine Endposition erreicht hat — sie wartet auf die Sensorbestätigung.
 
-| Problem | Lösung |
-|---------|--------|
-| Entity-IDs haben deutsche Namen | Integration löschen, verwaiste Entities entfernen, neu hinzufügen |
-| Aktor verliert Verbindung | Impulspause in den Grundeinstellungen erhöhen |
-| Falscher Zustand nach Neustart | Tor einmal betätigen, damit ein Endschalter einen Sync auslöst |
-| Stop reagiert nicht | In v1.0 behoben – keine blockierenden Service-Calls mehr |
+### Multi-Impuls-Befehle
 
-## Homematic IP Verkabelungshinweise
+| Von → Nach | Impulse | Sequenz |
+|:-----------|:-------:|:--------|
+| Geschlossen → Öffnet | 1 | Auf |
+| Öffnet → Gestoppt | 1 | Stop |
+| Gestoppt (oben) → Schließt | 1 | Zu |
+| Gestoppt (oben) → Öffnet | 3 | Zu → Stop → Auf |
+| Gestoppt (unten) → Schließt | 3 | Auf → Stop → Zu |
+| Schließt → Öffnet | 2 | Stop → Auf |
 
-Für die typische Homematic IP Konfiguration:
-- **HmIP-PCBS** (Schaltaktor): Steuert den Garagentorantrieb per Impuls
-- **HmIP-FCI6** (Kontakt-Interface): ch1 = Endschalter unten, ch2 = Endschalter oben
-- **HmIP-STV** (Neigungssensor): Erkennt Torbewegung
-- **Endschalter-Invertierung**: ch1 (unten) → **Invertieren JA** (OFF = geschlossen), ch2 (oben) → **Invertieren NEIN** (ON = offen)
+Alle Multi-Impuls-Sequenzen sind **abbrechbar** — Stop während einer Sequenz bricht sie über den Befehlszähler sofort ab.
 
-## Lizenz
+---
 
-[MIT](LICENSE)
+## 🔌 Unterstützte Hardware
+
+### Getestet mit
+
+| Gerät | Typ | Zweck |
+|:------|:----|:------|
+| **HmIP-PCBS** | Schaltaktor | Steuerrelais (Impuls) |
+| **HmIP-FCI6** | Kontaktinterface | Endschalter (ch1 = unten, ch2 = oben) |
+| **HmIP-STV** | Neigungssensor | Erschütterung / Bewegungserkennung |
+
+### Homematic IP Verkabelungshinweise
+
+| Gerät | Kanal | Funktion | Invertieren? |
+|:------|:------|:---------|:-------------|
+| HmIP-FCI6 | ch1 | Endschalter unten | **Ja** (OFF = geschlossen) |
+| HmIP-FCI6 | ch2 | Endschalter oben | **Nein** (ON = offen) |
+| HmIP-PCBS | — | Steuerungsschalter | — |
+| HmIP-STV | — | Erschütterungssensor | — |
+
+### Kompatibel mit
+
+Alle impulsgesteuerten Garagentorantriebe, die über eine Home Assistant `switch`- oder `button`-Entity steuerbar sind. Das umfasst Motoren von Hörmann, Marantec, Chamberlain, Sommer, Novoferm und andere mit einfachem Impuls-/Toggle-Mechanismus.
+
+---
+
+## 🐛 Fehlerbehebung
+
+<details>
+<summary><b>Entity-IDs haben falsche Sprache</b></summary>
+
+Entity-IDs werden bei der ersten Erstellung generiert. Bei Altlasten aus früheren Versionen: Integration löschen und neu hinzufügen.
+</details>
+
+<details>
+<summary><b>Homematic-Aktor verliert Verbindung</b></summary>
+
+Die **Impulspause** in den Einstellungen erhöhen. Homematic IP-Geräte können die Verbindung verlieren, wenn sie zu viele HF-Signale in kurzer Zeit empfangen. Standard ist 1 Sekunde; versuche 2-3 Sekunden.
+</details>
+
+<details>
+<summary><b>Falscher Zustand nach HA-Neustart</b></summary>
+
+Der Zustand wird über RestoreEntity gespeichert. Falls falsch: Tor einmal betätigen, damit ein Endschalter auslöst und einen Sync triggert (setzt den Impulszähler auf 0).
+</details>
+
+<details>
+<summary><b>Stop reagiert langsam</b></summary>
+
+In v1.0 behoben: Service-Calls verwenden Fire-and-Forget (kein `blocking=True`), sodass der Stop-Befehl sofort verarbeitet wird.
+</details>
+
+<details>
+<summary><b>Diagnosedaten benötigt?</b></summary>
+
+Geräteseite → ⋮ → **Diagnose herunterladen**. Erstellt eine JSON-Datei mit dem vollständigen State-Machine-Zustand, Sensorstatus und Konfiguration (sensible Daten geschwärzt).
+</details>
+
+---
+
+## 🏆 Quality Scale
+
+Diese Integration zielt auf den [Home Assistant Integration Quality Scale](https://developers.home-assistant.io/docs/core/integration-quality-scale/) **Silver**-Tier.
+
+| Regel | Status |
+|:------|:------:|
+| Config Flow | ✅ |
+| Entity Unique ID | ✅ |
+| Unique Config Entry | ✅ |
+| Test Before Setup | ✅ |
+| Config Entry Unloading | ✅ |
+| Entity Unavailable | ✅ |
+| Action Exceptions | ✅ |
+| Parallel Updates | ✅ |
+| Integration Owner | ✅ |
+| Diagnostics | ✅ |
+| Entity Translations | ✅ |
+| Devices | ✅ |
+| Reconfigure Flow | ✅ |
+
+Details in [`quality_scale.yaml`](custom_components/smart_garage/quality_scale.yaml).
+
+---
+
+## 🤝 Mitwirken
+
+Beiträge sind willkommen! Bitte lies [CONTRIBUTING.md](CONTRIBUTING.md) vor dem Einreichen eines PRs.
+
+## 📄 Lizenz
+
+[MIT](LICENSE) © Thomas
+
+---
+
+<!-- Badge URLs -->
+[hacs-badge]: https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge
+[hacs-url]: https://github.com/hacs/integration
+[release-badge]: https://img.shields.io/github/v/release/thokoh74-DE/smart-garage?style=for-the-badge
+[release-url]: https://github.com/thokoh74-DE/smart-garage/releases
+[license-badge]: https://img.shields.io/github/license/thokoh74-DE/smart-garage?style=for-the-badge
+[license-url]: https://github.com/thokoh74-DE/smart-garage/blob/main/LICENSE
+[hassfest-badge]: https://img.shields.io/github/actions/workflow/status/thokoh74-DE/smart-garage/hassfest.yml?label=Hassfest&style=for-the-badge
+[hassfest-url]: https://github.com/thokoh74-DE/smart-garage/actions/workflows/hassfest.yml
+[hacs-val-badge]: https://img.shields.io/github/actions/workflow/status/thokoh74-DE/smart-garage/hacs.yml?label=HACS&style=for-the-badge
+[hacs-val-url]: https://github.com/thokoh74-DE/smart-garage/actions/workflows/hacs.yml
+[codeql-badge]: https://img.shields.io/github/actions/workflow/status/thokoh74-DE/smart-garage/codeql.yml?label=CodeQL&style=for-the-badge
+[codeql-url]: https://github.com/thokoh74-DE/smart-garage/actions/workflows/codeql.yml
+[downloads-badge]: https://img.shields.io/github/downloads/thokoh74-DE/smart-garage/total?style=for-the-badge
