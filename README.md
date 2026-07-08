@@ -244,7 +244,17 @@ When limit switches are configured, the integration **never** assumes the door r
 | Stopped (down) → Closing | 3 | Open → Stop → Close |
 | Closing → Opening | 2 | Stop → Open |
 
-All multi-pulse sequences are **cancellable** — pressing Stop during a sequence aborts it immediately via the command sequence counter.
+All multi-pulse sequences are **cancellable** — pressing Stop (or any other command) during a sequence interrupts the wait between pulses immediately and takes over exclusively, so pulses from two overlapping commands can never interleave. See [Command Serialization](#command-serialization) below.
+
+### Command Serialization
+
+Rapidly issuing commands (e.g. Open → Stop → Open in quick succession, faster than a multi-pulse sequence completes) used to be able to send pulses from two overlapping commands at the same time, desyncing the pulse counter from the real door position. Every command now runs under an exclusive lock:
+
+1. A new command immediately signals any in-progress command to abort.
+2. The in-progress command's wait between pulses is interrupted right away — it doesn't finish out the full delay.
+3. The new command only starts sending its own pulses once the previous one has fully stopped.
+
+This guarantees pulses are never interleaved, while keeping Stop instantly responsive even during a multi-pulse reversal sequence.
 
 ---
 
@@ -309,6 +319,12 @@ Fixed in v1.0.3: position is now calculated relative to a baseline captured at t
 <summary><b>False "accidental opening" warning when I open the door myself</b></summary>
 
 Fixed in v1.0.3: the safety warning no longer fires for an explicit open command (UI, service call, or physical button), even from a ventilating state. It now correctly fires only when the door overshoots past the ventilation gap after an automatic or manual ventilation trigger, without an explicit open command.
+</details>
+
+<details>
+<summary><b>Door doesn't respond correctly (or moves the wrong way) after rapid Open/Stop/Open clicks</b></summary>
+
+Fixed in v1.0.3: commands are now fully serialized with immediate cancellation of any in-progress multi-pulse sequence before the new command starts. Previously, clicking through a sequence faster than the pulse delay could send pulses from two overlapping commands at once, desyncing the internal position from the real door. Update to the latest version if you still see this.
 </details>
 
 <details>

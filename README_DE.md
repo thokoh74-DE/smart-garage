@@ -241,7 +241,17 @@ Sind Endschalter konfiguriert, nimmt die Integration **niemals** an, dass das To
 | Gestoppt (unten) → Schließt | 3 | Auf → Stop → Zu |
 | Schließt → Öffnet | 2 | Stop → Auf |
 
-Alle Multi-Impuls-Sequenzen sind **abbrechbar** — Stop während einer Sequenz bricht sie über den Befehlszähler sofort ab.
+Alle Multi-Impuls-Sequenzen sind **abbrechbar** — Stop (oder jeder andere Befehl) während einer Sequenz unterbricht die Wartepause zwischen Impulsen sofort und übernimmt exklusiv, sodass sich Impulse zweier überlappender Befehle niemals vermischen können. Siehe [Befehlsserialisierung](#befehlsserialisierung) unten.
+
+### Befehlsserialisierung
+
+Schnell hintereinander ausgeführte Befehle (z.B. Auf → Stop → Auf schneller als eine Multi-Impuls-Sequenz abschließt) konnten früher dazu führen, dass Impulse zweier überlappender Befehle gleichzeitig gesendet wurden — der Impulszähler geriet dadurch außer Sync mit der echten Torposition. Jeder Befehl läuft jetzt unter einer exklusiven Sperre:
+
+1. Ein neuer Befehl signalisiert sofort jedem laufenden Befehl, abzubrechen.
+2. Die Wartepause des laufenden Befehls zwischen Impulsen wird sofort unterbrochen — sie wartet nicht die volle Verzögerung ab.
+3. Der neue Befehl beginnt erst dann mit eigenen Impulsen, wenn der vorherige vollständig gestoppt hat.
+
+Das garantiert, dass sich Impulse niemals überlappen, während Stop weiterhin sofort reagiert, auch mitten in einer Multi-Impuls-Umkehrsequenz.
 
 ---
 
@@ -306,6 +316,12 @@ In v1.0.3 behoben: Die Position wird jetzt relativ zu einer Basislinie berechnet
 <summary><b>Fehlerhafte „Versehentliches Öffnen"-Warnung beim eigenen Öffnen</b></summary>
 
 In v1.0.3 behoben: Die Sicherheitswarnung erscheint nicht mehr bei einem expliziten Öffnen-Befehl (UI, Service-Call oder physischer Taster), auch nicht aus der Lüftungsstellung heraus. Sie erscheint jetzt korrekt nur noch, wenn das Tor nach einer automatischen oder manuellen Lüftungsauslösung über den Spalt hinausfährt, ohne dass ein expliziter Öffnen-Befehl vorlag.
+</details>
+
+<details>
+<summary><b>Tor reagiert falsch (oder fährt in die falsche Richtung) nach schnellen Auf/Stop/Auf-Klicks</b></summary>
+
+In v1.0.3 behoben: Befehle laufen jetzt vollständig serialisiert mit sofortigem Abbruch jeder laufenden Multi-Impuls-Sequenz, bevor der neue Befehl startet. Vorher konnte schnelleres Klicken als die Impulspause dazu führen, dass Impulse zweier überlappender Befehle gleichzeitig gesendet wurden, was die interne Position von der echten Torposition entkoppelte. Auf die neueste Version aktualisieren, falls das Problem weiterhin auftritt.
 </details>
 
 <details>
