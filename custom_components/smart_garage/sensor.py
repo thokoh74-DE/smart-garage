@@ -69,6 +69,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
         DiagLastDrive(entry, ctrl),
         DiagLastCommand(entry, ctrl),
         DiagCurrentState(entry, ctrl),
+        DiagPulseCount(entry, ctrl),
     ]
     if ctrl.closed_sensor:
         entities.append(
@@ -195,6 +196,33 @@ class DiagLastCommand(_CtrlMixin, SensorEntity):
     @property
     def native_value(self):
         return self._ctrl.last_command or "none"
+
+
+class DiagPulseCount(_CtrlMixin, SensorEntity):
+    """Number of pulses sent since the last confirmed sync point.
+
+    Resets to 0 whenever a limit switch confirms the door is fully closed
+    or fully open. Useful for verifying the pulse-counting state machine
+    matches the real door position.
+    """
+
+    _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_icon = "mdi:counter"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_translation_key = "pulse_count"
+
+    def __init__(self, entry, ctrl):
+        self._ctrl = ctrl
+        self._attr_unique_id = f"{DOMAIN}_{entry.entry_id}_pulse_count"
+
+    @property
+    def native_value(self) -> int:
+        return self._ctrl._pulse_count
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return {"sync_state": self._ctrl._sync_state}
 
 
 class DiagCurrentState(_CtrlMixin, SensorEntity):
