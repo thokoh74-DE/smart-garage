@@ -191,7 +191,6 @@ class SmartGarageController:
         self.is_pulsing: bool = False
         self._pulse_lock = asyncio.Lock()
         self._last_pulse_time: datetime | None = None
-        self._pending_own_activations: int = 0
         self._move_start: datetime | None = None
         self._last_opened_at: datetime | None = None
         self._safety_pending: bool = False
@@ -438,26 +437,17 @@ class SmartGarageController:
     async def _pulse_once(self) -> bool:
         """Send a single pulse to the control switch."""
         domain = self.control_switch.split(".")[0]
-        # Mark the pulse start immediately, before any state-changed event
-        # for it can possibly be dispatched.
         self._last_pulse_time = dt_util.utcnow()
         try:
             if domain == "button":
                 await self.hass.services.async_call("button", "press", {"entity_id": self.control_switch})
             else:
-                # Track that we expect exactly one "turned on" echo for this
-                # pulse. This is a deterministic counter, not a time window,
-                # so it stays correct even if the Homematic RF confirmation
-                # for our own pulse arrives several seconds late.
-                self._pending_own_activations += 1
                 await self.hass.services.async_call("switch", "turn_on", {"entity_id": self.control_switch})
                 await asyncio.sleep(self.pulse_ms / 1000)
                 await self.hass.services.async_call("switch", "turn_off", {"entity_id": self.control_switch})
             return True
         except Exception:
             _LOGGER.exception("Smart Garage: Pulse failed")
-            if domain != "button" and self._pending_own_activations > 0:
-                self._pending_own_activations -= 1
             return False
 
     async def _do_pulse(self) -> bool:
@@ -629,6 +619,14 @@ class SmartGarageController:
             return
 
         if eid == self.control_switch:
+            # We only use the control switch's own state for reachability
+            # monitoring here. We deliberately do NOT try to infer external
+            # button presses from its on/off echo: distinguishing "our own
+            # pulse's delayed RF confirmation" from "someone else toggled
+            # this switch" is inherently unreliable with radio hardware and
+            # any misattribution directly corrupts the pulse-count state
+            # machine. Physical button presses are already captured reliably
+            # via the dedicated external_button entity, if configured.
             prev = self.actor_reachable
             self.actor_reachable = new.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN)
             if prev and not self.actor_reachable and self.door_state != DOOR_CLOSED:
@@ -637,20 +635,6 @@ class SmartGarageController:
                     "Garage door is open and actor is unreachable.",
                     critical=True,
                 )
-            if new.state == STATE_ON and old and old.state != STATE_ON:
-                if self._pending_own_activations > 0:
-                    # This is the (possibly delayed) echo of a pulse we sent
-                    # ourselves - never treat it as an external press,
-                    # regardless of how long the RF confirmation took.
-                    self._pending_own_activations -= 1
-                    self._notify_update()
-                    return
-                if self.is_pulsing:
-                    # Extra safety net: still mid-pulse, definitely our own.
-                    self._notify_update()
-                    return
-                _LOGGER.info("Smart Garage: External switch activation")
-                self._advance_pulse()
             self._notify_update()
             return
 
