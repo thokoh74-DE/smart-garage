@@ -1,5 +1,15 @@
 # Changelog / Änderungsprotokoll
 
+## [1.0.4] – 2025-07-08
+
+### Fixed / Behoben
+
+- 🔒 **Command serialization simplified — fixes door getting stuck after v1.0.3's fix** – The v1.0.3 fix used an immediate-interrupt approach: a new command would signal any in-progress multi-pulse sequence to abort right away. This could itself cause a sequence to abort after only 1 of its 3 pulses if two commands overlapped (e.g. a duplicate/near-simultaneous service call), leaving the door stopped partway with no further movement. Commands now simply **wait** for any in-progress sequence to finish completely instead of interrupting it — multi-pulse sequences always run undisturbed to completion, and a new command only starts once the previous one has fully stopped. This trades a small delay (at most ~2 seconds, only when a new command arrives mid-sequence) for much higher reliability. / **Befehlsserialisierung vereinfacht — behebt hängenbleibendes Tor nach dem v1.0.3-Fix** – Der v1.0.3-Fix nutzte einen Sofort-Unterbrechungsansatz: Ein neuer Befehl signalisierte jeder laufenden Multi-Impuls-Sequenz, sofort abzubrechen. Das konnte selbst dazu führen, dass eine Sequenz nach nur 1 von 3 Impulsen abbrach, wenn sich zwei Befehle überlappten (z.B. durch einen doppelten/nahezu gleichzeitigen Service-Call) — das Tor blieb dann mitten in der Fahrt ohne weitere Bewegung stehen. Befehle **warten** jetzt einfach, bis eine laufende Sequenz vollständig abgeschlossen ist, statt sie zu unterbrechen — Multi-Impuls-Sequenzen laufen immer ungestört bis zum Ende durch, und ein neuer Befehl startet erst, wenn der vorherige vollständig fertig ist. Das kostet eine kleine Verzögerung (höchstens ca. 2 Sekunden, nur wenn ein neuer Befehl mitten in einer Sequenz eintrifft) für deutlich höhere Zuverlässigkeit.
+
+### Added / Hinzugefügt
+
+- 🔢 **Pulse Count diagnostic sensor** – Shows the number of pulses sent since the last confirmed limit-switch sync as a plain number, resetting to 0 the moment the door reaches fully closed or fully open. Makes it easy to verify the pulse-counting state machine matches the real door position at a glance. / **Diagnosesensor „Impulszähler"** – Zeigt die Anzahl der gesendeten Impulse seit dem letzten bestätigten Endschalter-Sync als einfache Zahl an und setzt sich auf 0 zurück, sobald das Tor vollständig geschlossen oder geöffnet ist. Macht es einfach, auf einen Blick zu prüfen, ob die impulszählende State Machine mit der echten Torposition übereinstimmt.
+
 ## [1.0.3] – 2025-07-08
 
 ### Fixed / Behoben

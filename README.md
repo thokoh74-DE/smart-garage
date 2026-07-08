@@ -192,6 +192,7 @@ After setup, click the ⚙️ gear icon on the integration to access the **menu-
 | Current State | `sensor` | Human-readable state with position (e.g. "Position 45%") |
 | Last Drive | `sensor` | Last state transition (translated enum) |
 | Last Command | `sensor` | Last user command (translated enum) |
+| Pulse Count | `sensor` | Number of pulses sent since the last confirmed limit-switch sync; resets to 0 when the door reaches fully closed or fully open |
 | Limit Switch Bottom | `sensor` | Mirrors hardware sensor state |
 | Limit Switch Top | `sensor` | Mirrors hardware sensor state |
 | Vibration Sensor | `sensor` | Mirrors hardware sensor state |
@@ -244,17 +245,19 @@ When limit switches are configured, the integration **never** assumes the door r
 | Stopped (down) → Closing | 3 | Open → Stop → Close |
 | Closing → Opening | 2 | Stop → Open |
 
-All multi-pulse sequences are **cancellable** — pressing Stop (or any other command) during a sequence interrupts the wait between pulses immediately and takes over exclusively, so pulses from two overlapping commands can never interleave. See [Command Serialization](#command-serialization) below.
+All multi-pulse sequences always run to completion once started — see [Command Serialization](#command-serialization) below for how overlapping commands are handled.
 
 ### Command Serialization
 
-Rapidly issuing commands (e.g. Open → Stop → Open in quick succession, faster than a multi-pulse sequence completes) used to be able to send pulses from two overlapping commands at the same time, desyncing the pulse counter from the real door position. Every command now runs under an exclusive lock:
+Issuing a new command while a previous multi-pulse sequence (e.g. a close→stop→open reversal) is still in progress used to be able to send pulses from two overlapping commands at the same time, desyncing the pulse counter from the real door position. Every command now runs under an exclusive lock:
 
-1. A new command immediately signals any in-progress command to abort.
-2. The in-progress command's wait between pulses is interrupted right away — it doesn't finish out the full delay.
-3. The new command only starts sending its own pulses once the previous one has fully stopped.
+1. A new command waits for any in-progress command to finish completely before starting.
+2. Multi-pulse sequences always run to completion undisturbed — they are never interrupted mid-sequence.
+3. Once the previous command has fully finished, the new command starts and acts on the door's actual resulting state.
 
-This guarantees pulses are never interleaved, while keeping Stop instantly responsive even during a multi-pulse reversal sequence.
+This guarantees pulses from two commands can never interleave. The trade-off is a small delay (at most a couple of pulse-delay intervals, typically well under 2 seconds) if a new command is issued while a multi-pulse sequence is still running — a safer and far more predictable behavior than trying to interrupt pulses mid-flight.
+
+You can watch the **Pulse Count** diagnostic sensor to see this in action: it increments with each pulse sent and resets to 0 the moment a limit switch confirms the door is fully closed or fully open, letting you verify the pulse-counting state machine matches the real door position at any time.
 
 ---
 
@@ -324,7 +327,7 @@ Fixed in v1.0.3: the safety warning no longer fires for an explicit open command
 <details>
 <summary><b>Door doesn't respond correctly (or moves the wrong way) after rapid Open/Stop/Open clicks</b></summary>
 
-Fixed in v1.0.3: commands are now fully serialized with immediate cancellation of any in-progress multi-pulse sequence before the new command starts. Previously, clicking through a sequence faster than the pulse delay could send pulses from two overlapping commands at once, desyncing the internal position from the real door. Update to the latest version if you still see this.
+Fixed in v1.0.4: commands are now fully serialized by simply waiting for any in-progress multi-pulse sequence to finish completely, instead of interrupting it. An earlier interrupt-based approach (v1.0.3) could itself cause a sequence to abort after only 1 of 3 pulses if two commands overlapped, leaving the door stuck. Update to the latest version if you still see this. Watch the **Pulse Count** diagnostic sensor to verify the internal counter matches physical door movement.
 </details>
 
 <details>

@@ -190,6 +190,7 @@ Nach der Einrichtung: ⚙️ Zahnrad-Symbol → **Menü mit 4 unabhängigen Bere
 | Aktueller Zustand | `sensor` | Menschenlesbarer Zustand mit Position (z.B. „Position 45%") |
 | Letzter Fahrbefehl | `sensor` | Letzte Zustandsänderung (übersetzter Enum) |
 | Letzter Befehl | `sensor` | Letzter Benutzerbefehl (übersetzter Enum) |
+| Impulszähler | `sensor` | Anzahl gesendeter Impulse seit dem letzten bestätigten Endschalter-Sync; setzt sich auf 0 zurück, sobald das Tor vollständig geschlossen oder geöffnet ist |
 | Endschalter unten / oben | `sensor` | Spiegelt Hardware-Sensorstatus |
 | Erschütterungssensor | `sensor` | Spiegelt Hardware-Sensorstatus |
 | Schaltaktor | `sensor` | Spiegelt Hardware-Sensorstatus |
@@ -241,17 +242,19 @@ Sind Endschalter konfiguriert, nimmt die Integration **niemals** an, dass das To
 | Gestoppt (unten) → Schließt | 3 | Auf → Stop → Zu |
 | Schließt → Öffnet | 2 | Stop → Auf |
 
-Alle Multi-Impuls-Sequenzen sind **abbrechbar** — Stop (oder jeder andere Befehl) während einer Sequenz unterbricht die Wartepause zwischen Impulsen sofort und übernimmt exklusiv, sodass sich Impulse zweier überlappender Befehle niemals vermischen können. Siehe [Befehlsserialisierung](#befehlsserialisierung) unten.
+Alle Multi-Impuls-Sequenzen laufen einmal gestartet immer vollständig durch — siehe [Befehlsserialisierung](#befehlsserialisierung) unten für den Umgang mit überlappenden Befehlen.
 
 ### Befehlsserialisierung
 
-Schnell hintereinander ausgeführte Befehle (z.B. Auf → Stop → Auf schneller als eine Multi-Impuls-Sequenz abschließt) konnten früher dazu führen, dass Impulse zweier überlappender Befehle gleichzeitig gesendet wurden — der Impulszähler geriet dadurch außer Sync mit der echten Torposition. Jeder Befehl läuft jetzt unter einer exklusiven Sperre:
+Ein neuer Befehl während einer laufenden Multi-Impuls-Sequenz (z.B. einer Zu→Stop→Auf-Umkehr) konnte früher dazu führen, dass Impulse zweier überlappender Befehle gleichzeitig gesendet wurden — der Impulszähler geriet dadurch außer Sync mit der echten Torposition. Jeder Befehl läuft jetzt unter einer exklusiven Sperre:
 
-1. Ein neuer Befehl signalisiert sofort jedem laufenden Befehl, abzubrechen.
-2. Die Wartepause des laufenden Befehls zwischen Impulsen wird sofort unterbrochen — sie wartet nicht die volle Verzögerung ab.
-3. Der neue Befehl beginnt erst dann mit eigenen Impulsen, wenn der vorherige vollständig gestoppt hat.
+1. Ein neuer Befehl wartet, bis ein laufender Befehl vollständig abgeschlossen ist, bevor er startet.
+2. Multi-Impuls-Sequenzen laufen immer ungestört bis zum Ende durch — sie werden nie mitten in der Sequenz unterbrochen.
+3. Erst wenn der vorherige Befehl vollständig fertig ist, startet der neue Befehl und handelt auf Basis des tatsächlichen, resultierenden Torzustands.
 
-Das garantiert, dass sich Impulse niemals überlappen, während Stop weiterhin sofort reagiert, auch mitten in einer Multi-Impuls-Umkehrsequenz.
+Das garantiert, dass sich Impulse zweier Befehle niemals vermischen können. Der Kompromiss ist eine kleine Verzögerung (höchstens ein paar Impulspausen, typischerweise deutlich unter 2 Sekunden), falls ein neuer Befehl während einer laufenden Multi-Impuls-Sequenz eintrifft — ein deutlich sichereres und vorhersehbareres Verhalten, als zu versuchen, Impulse mitten im Ablauf zu unterbrechen.
+
+Du kannst das am **Impulszähler**-Diagnosesensor live mitverfolgen: Er erhöht sich mit jedem gesendeten Impuls und setzt sich auf 0 zurück, sobald ein Endschalter bestätigt, dass das Tor vollständig geschlossen oder geöffnet ist — so lässt sich jederzeit prüfen, ob die interne Zählung mit der echten Torposition übereinstimmt.
 
 ---
 
@@ -321,7 +324,7 @@ In v1.0.3 behoben: Die Sicherheitswarnung erscheint nicht mehr bei einem explizi
 <details>
 <summary><b>Tor reagiert falsch (oder fährt in die falsche Richtung) nach schnellen Auf/Stop/Auf-Klicks</b></summary>
 
-In v1.0.3 behoben: Befehle laufen jetzt vollständig serialisiert mit sofortigem Abbruch jeder laufenden Multi-Impuls-Sequenz, bevor der neue Befehl startet. Vorher konnte schnelleres Klicken als die Impulspause dazu führen, dass Impulse zweier überlappender Befehle gleichzeitig gesendet wurden, was die interne Position von der echten Torposition entkoppelte. Auf die neueste Version aktualisieren, falls das Problem weiterhin auftritt.
+In v1.0.4 behoben: Befehle werden jetzt vollständig serialisiert, indem einfach auf das Ende jeder laufenden Multi-Impuls-Sequenz gewartet wird, statt sie zu unterbrechen. Ein früherer, unterbrechungsbasierter Ansatz (v1.0.3) konnte selbst dazu führen, dass eine Sequenz nach nur 1 von 3 Impulsen abbrach, wenn sich zwei Befehle überlappten — das Tor blieb dann hängen. Auf die neueste Version aktualisieren, falls das Problem weiterhin auftritt. Am **Impulszähler**-Diagnosesensor lässt sich prüfen, ob der interne Zähler mit der physischen Torbewegung übereinstimmt.
 </details>
 
 <details>
