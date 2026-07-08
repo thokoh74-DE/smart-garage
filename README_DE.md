@@ -75,7 +75,7 @@ Entwickelt für **Homematic IP** Hardware, aber kompatibel mit **jedem impulsges
 </tr>
 <tr>
 <td>🛡️</td>
-<td><b>Versehentliches-Öffnen-Schutz</b><br>Erkennt über den Erschütterungssensor, wenn das Tor sich zu weit bewegt. Schließt automatisch mit Benachrichtigung.</td>
+<td><b>Versehentliches-Öffnen-Schutz</b><br>Erkennt, wenn sich das Tor deutlich über den Lüftungsspalt hinaus bewegt — bestätigt durch den oberen Endschalter oder anhaltende Vibration über einem Schwellwert — und schließt automatisch mit Benachrichtigung. Löst nur aus, wenn die Lüftungsstellung automatisch (feuchtebasiert) oder über den manuellen Lüftungsschalter erreicht wurde und das Tor danach übersteuert. Löst nie aus bei einem expliziten Öffnen-Befehl (UI, Service-Call oder physischer Taster), auch nicht aus der Lüftungsstellung heraus.</td>
 </tr>
 <tr>
 <td>📡</td>
@@ -226,6 +226,8 @@ Wenn ein Endschalter auslöst → Zähler wird auf 0 zurückgesetzt (neuer Sync-
 
 Während der Fahrt: `Position = verstrichene_Zeit ÷ Fahrzeit × 100%`
 
+Die Position wird relativ zu einer **Basislinie berechnet, die zu Beginn jeder Bewegung erfasst wird** — nicht immer ausgehend von 0% oder 100%. Das ist wichtig bei wiederholten Stop-Umkehr-Zyklen: Öffnen, Stoppen, erneut Öffnen setzt die Berechnung korrekt an der zuletzt bekannten Position fort, statt sie auf eine volle 0–100%-Fahrt zurückzusetzen.
+
 Sind Endschalter konfiguriert, nimmt die Integration **niemals** an, dass das Tor seine Endposition erreicht hat — sie wartet auf die Sensorbestätigung.
 
 ### Multi-Impuls-Befehle
@@ -292,6 +294,18 @@ Der Zustand wird über RestoreEntity gespeichert. Falls falsch: Tor einmal betä
 <summary><b>Stop reagiert langsam</b></summary>
 
 In v1.0 behoben: Service-Calls verwenden Fire-and-Forget (kein `blocking=True`), sodass der Stop-Befehl sofort verarbeitet wird.
+</details>
+
+<details>
+<summary><b>Position wird nach wiederholten Stop-Umkehr-Zyklen ungenau</b></summary>
+
+In v1.0.3 behoben: Die Position wird jetzt relativ zu einer Basislinie berechnet, die zu Beginn jeder Bewegung erfasst wird, statt immer von 0% oder 100% auszugehen. Auf die neueste Version aktualisieren, falls das Problem weiterhin auftritt.
+</details>
+
+<details>
+<summary><b>Fehlerhafte „Versehentliches Öffnen"-Warnung beim eigenen Öffnen</b></summary>
+
+In v1.0.3 behoben: Die Sicherheitswarnung erscheint nicht mehr bei einem expliziten Öffnen-Befehl (UI, Service-Call oder physischer Taster), auch nicht aus der Lüftungsstellung heraus. Sie erscheint jetzt korrekt nur noch, wenn das Tor nach einer automatischen oder manuellen Lüftungsauslösung über den Spalt hinausfährt, ohne dass ein expliziter Öffnen-Befehl vorlag.
 </details>
 
 <details>
