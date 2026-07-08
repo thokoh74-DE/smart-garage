@@ -148,6 +148,9 @@
           "none": "–"
         }
       },
+      "pulse_count": {
+        "name": "Impulszähler"
+      },
       "current_state": {
         "name": "Aktueller Zustand"
       },
