@@ -75,7 +75,7 @@ Designed for **Homematic IP** hardware but works with **any impulse-driven garag
 </tr>
 <tr>
 <td>🛡️</td>
-<td><b>Accidental Opening Protection</b><br>Detects if the door moves too far during ventilation via vibration sensor. Auto-closes with notification.</td>
+<td><b>Accidental Opening Protection</b><br>Detects when the door moves significantly beyond the ventilation gap — confirmed by the top limit switch or sustained vibration beyond a threshold — and auto-closes with notification. Triggers only when the ventilation position was reached automatically (humidity-based) or via the manual ventilation switch and the door then overshoots. Never triggers for an explicit open command (UI, service call, or physical button), even from a ventilating state.</td>
 </tr>
 <tr>
 <td>📡</td>
@@ -229,6 +229,8 @@ When a limit switch fires → pulse counter resets to 0 (new sync point).
 
 During movement: `position = elapsed_time ÷ travel_time × 100%`
 
+Position is estimated relative to a **baseline captured at the start of each movement**, not always from 0% or 100%. This matters for repeated stop/reverse cycles: opening, stopping, then opening again continues accurately from the last known position instead of resetting the estimate to a full 0–100% traversal.
+
 When limit switches are configured, the integration **never** assumes the door reached its end position based on time alone — it waits for sensor confirmation.
 
 ### Multi-Pulse Commands
@@ -295,6 +297,18 @@ The state is persisted via RestoreEntity. If incorrect, operate the door once so
 <summary><b>Stop doesn't respond quickly</b></summary>
 
 Fixed in v1.0: service calls use fire-and-forget (no `blocking=True`), so the stop command is processed immediately without waiting for Homematic RF confirmation.
+</details>
+
+<details>
+<summary><b>Position becomes inaccurate after repeated stop/reverse cycles</b></summary>
+
+Fixed in v1.0.3: position is now calculated relative to a baseline captured at the start of each movement, instead of always assuming travel from 0% or 100%. Update to the latest version if you still see this.
+</details>
+
+<details>
+<summary><b>False "accidental opening" warning when I open the door myself</b></summary>
+
+Fixed in v1.0.3: the safety warning no longer fires for an explicit open command (UI, service call, or physical button), even from a ventilating state. It now correctly fires only when the door overshoots past the ventilation gap after an automatic or manual ventilation trigger, without an explicit open command.
 </details>
 
 <details>
