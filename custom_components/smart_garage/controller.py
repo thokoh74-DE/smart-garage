@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import logging
 import math
@@ -190,6 +191,8 @@ class SmartGarageController:
 
         self.is_pulsing: bool = False
         self._pulse_lock = asyncio.Lock()
+        self._command_lock = asyncio.Lock()
+        self._abort_event = asyncio.Event()
         self._last_pulse_time: datetime | None = None
         self._move_start: datetime | None = None
         self._last_opened_at: datetime | None = None
@@ -462,17 +465,23 @@ class SmartGarageController:
             return ok
 
     async def _multi_pulse(self, count: int) -> None:
-        """Send multiple pulses, abortable via command sequence counter."""
-        seq = self._command_seq
+        """Send multiple pulses, immediately abortable by a new command."""
         for i in range(count):
-            if self._command_seq != seq:
-                _LOGGER.info("Smart Garage: Multi-pulse aborted at %d/%d", i + 1, count)
-                break
+            if self._abort_event.is_set():
+                _LOGGER.info("Smart Garage: Multi-pulse aborted at %d/%d", i, count)
+                return
             ok = await self._do_pulse()
             if not ok:
-                break
+                return
             if i < count - 1:
-                await asyncio.sleep(self.pulse_delay)
+                try:
+                    await asyncio.wait_for(self._abort_event.wait(), timeout=self.pulse_delay)
+                    # Abort event was set during the wait - stop immediately
+                    # instead of sending the remaining pulses.
+                    _LOGGER.info("Smart Garage: Multi-pulse aborted at %d/%d", i + 1, count)
+                    return
+                except TimeoutError:
+                    pass  # normal case: delay elapsed, continue to next pulse
 
     def _start_travel_timer(self, target: str) -> None:
         """Start fallback timer (only used if no limit switch configured)."""
@@ -507,8 +516,28 @@ class SmartGarageController:
 
     # -- Cover commands -------------------------------------------------
 
+    @contextlib.asynccontextmanager
+    async def _exclusive_command(self):
+        """Ensure only one top-level command's pulses are ever in flight.
+
+        Signals any in-progress command (e.g. a multi-pulse reversal
+        currently waiting between pulses) to abort immediately, waits for
+        it to actually finish and release the lock, then runs the new
+        command exclusively. This prevents pulses from two overlapping
+        commands (e.g. rapid Open -> Stop -> Open clicks) from
+        interleaving and corrupting the pulse count.
+        """
+        self._abort_event.set()
+        async with self._command_lock:
+            self._abort_event.clear()
+            yield
+
     async def async_open(self) -> None:
         """Open the garage door."""
+        async with self._exclusive_command():
+            await self._async_open_impl()
+
+    async def _async_open_impl(self) -> None:
         self._command_seq += 1
         # This is an explicit, user-initiated (or automation-initiated via
         # this integration's own service call) open command. It must never
@@ -530,6 +559,10 @@ class SmartGarageController:
 
     async def async_close(self) -> None:
         """Close the garage door."""
+        async with self._exclusive_command():
+            await self._async_close_impl()
+
+    async def _async_close_impl(self) -> None:
         self._command_seq += 1
         state = self.door_state
         self.last_command = "down"
@@ -547,6 +580,10 @@ class SmartGarageController:
 
     async def async_stop(self) -> None:
         """Stop the garage door."""
+        async with self._exclusive_command():
+            await self._async_stop_impl()
+
+    async def _async_stop_impl(self) -> None:
         self._command_seq += 1
         # Once movement is deliberately halted, any further unexpected
         # movement toward fully open should be treated as unexpected again.
@@ -567,6 +604,10 @@ class SmartGarageController:
 
     async def async_open_ventilation(self) -> None:
         """Open the door to ventilation position."""
+        async with self._exclusive_command():
+            await self._async_open_ventilation_impl()
+
+    async def _async_open_ventilation_impl(self) -> None:
         self._command_seq += 1
         # This call intends only a small gap. Explicitly mark that we are
         # NOT expecting a full open, so the safety check stays active if
@@ -577,18 +618,27 @@ class SmartGarageController:
         self.last_command = "ventilate"
         _LOGGER.info("Smart Garage: Ventilation open (%.1fs)", self.vent_open_s)
         await self._do_pulse()
-        await asyncio.sleep(self.vent_open_s)
+        try:
+            await asyncio.wait_for(self._abort_event.wait(), timeout=self.vent_open_s)
+            # Aborted by a new command before the gap duration elapsed.
+            return
+        except TimeoutError:
+            pass
         await self._do_pulse()
         self.is_ventilating = True
         self._notify_update()
 
     async def async_close_ventilation(self) -> None:
         """Close the door from ventilation position."""
+        async with self._exclusive_command():
+            await self._async_close_ventilation_impl()
+
+    async def _async_close_ventilation_impl(self) -> None:
         self._command_seq += 1
         state = self.door_state
         if state not in (DOOR_STOPPED_UP, DOOR_VENTILATING):
             if state in (DOOR_OPEN, DOOR_OPENING):
-                await self.async_close()
+                await self._async_close_impl()
             return
         self.last_command = "ventilate_close"
         await self._do_pulse()
