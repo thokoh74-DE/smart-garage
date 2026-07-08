@@ -192,7 +192,6 @@ class SmartGarageController:
         self.is_pulsing: bool = False
         self._pulse_lock = asyncio.Lock()
         self._command_lock = asyncio.Lock()
-        self._abort_event = asyncio.Event()
         self._last_pulse_time: datetime | None = None
         self._move_start: datetime | None = None
         self._last_opened_at: datetime | None = None
@@ -465,23 +464,18 @@ class SmartGarageController:
             return ok
 
     async def _multi_pulse(self, count: int) -> None:
-        """Send multiple pulses, immediately abortable by a new command."""
+        """Send multiple pulses in sequence with a delay between each.
+
+        Safe to run to completion without interruption: the command lock
+        held by the caller guarantees no other command's pulses can be
+        sent concurrently, so this always finishes exactly as intended.
+        """
         for i in range(count):
-            if self._abort_event.is_set():
-                _LOGGER.info("Smart Garage: Multi-pulse aborted at %d/%d", i, count)
-                return
             ok = await self._do_pulse()
             if not ok:
                 return
             if i < count - 1:
-                try:
-                    await asyncio.wait_for(self._abort_event.wait(), timeout=self.pulse_delay)
-                    # Abort event was set during the wait - stop immediately
-                    # instead of sending the remaining pulses.
-                    _LOGGER.info("Smart Garage: Multi-pulse aborted at %d/%d", i + 1, count)
-                    return
-                except TimeoutError:
-                    pass  # normal case: delay elapsed, continue to next pulse
+                await asyncio.sleep(self.pulse_delay)
 
     def _start_travel_timer(self, target: str) -> None:
         """Start fallback timer (only used if no limit switch configured)."""
@@ -520,16 +514,14 @@ class SmartGarageController:
     async def _exclusive_command(self):
         """Ensure only one top-level command's pulses are ever in flight.
 
-        Signals any in-progress command (e.g. a multi-pulse reversal
-        currently waiting between pulses) to abort immediately, waits for
-        it to actually finish and release the lock, then runs the new
-        command exclusively. This prevents pulses from two overlapping
-        commands (e.g. rapid Open -> Stop -> Open clicks) from
-        interleaving and corrupting the pulse count.
+        A new command waits for any currently in-progress command (e.g. a
+        multi-pulse reversal sequence) to finish naturally before starting.
+        This guarantees pulses from two commands can never interleave and
+        corrupt the pulse count, at the cost of a small delay (at most a
+        couple of pulse-delay intervals) if a new command arrives while a
+        multi-pulse sequence is still running.
         """
-        self._abort_event.set()
         async with self._command_lock:
-            self._abort_event.clear()
             yield
 
     async def async_open(self) -> None:
@@ -618,12 +610,7 @@ class SmartGarageController:
         self.last_command = "ventilate"
         _LOGGER.info("Smart Garage: Ventilation open (%.1fs)", self.vent_open_s)
         await self._do_pulse()
-        try:
-            await asyncio.wait_for(self._abort_event.wait(), timeout=self.vent_open_s)
-            # Aborted by a new command before the gap duration elapsed.
-            return
-        except TimeoutError:
-            pass
+        await asyncio.sleep(self.vent_open_s)
         await self._do_pulse()
         self.is_ventilating = True
         self._notify_update()
