@@ -365,7 +365,7 @@ Beiträge sind willkommen! Bitte lies [CONTRIBUTING.md](CONTRIBUTING.md) vor dem
 
 ## 📄 Lizenz
 
-[MIT](LICENSE) © Thomas
+[MIT](LICENSE) © thokoh74-DE
 
 ---
 
