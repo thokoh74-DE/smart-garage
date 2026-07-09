@@ -1,7 +1,9 @@
 {
   "domain": "smart_garage",
   "name": "Smart Garage",
-  "codeowners": ["@thokoh74-DE"],
+  "codeowners": [
+    "@thokoh74-DE"
+  ],
   "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/thokoh74-DE/smart-garage",
