@@ -1,5 +1,15 @@
 # Changelog / Änderungsprotokoll
 
+## [1.0.5] – 2025-07-09
+
+### Fixed / Behoben
+
+- 🔧 **Root cause of door desync identified and fixed: missing inter-pulse gap between consecutive commands** – The pulse delay (configurable, default 1.0s) was only enforced *between* pulses within the same multi-pulse sequence, but *not* between the last pulse of one command and the first pulse of the next. When a user clicked e.g. Open → Stop → Open in quick succession, the Stop pulse and the first pulse of the subsequent 3-pulse reversal were sent back-to-back with only milliseconds between them — faster than the Homematic RF relay could process. The actor would swallow one of the two rapid pulses, desyncing the internal pulse counter from the real door position. The minimum inter-pulse gap (`pulse_delay`) is now enforced centrally in `_do_pulse` before *every* pulse, regardless of whether it belongs to the same command or a new one. This is the definitive fix for the door-desync issues reported since v1.0.3. / **Kernursache des Tor-Desyncs identifiziert und behoben: fehlende Impulspause zwischen aufeinanderfolgenden Befehlen** – Die Impulspause (konfigurierbar, Standard 1,0s) wurde nur *zwischen* Impulsen innerhalb derselben Multi-Impuls-Sequenz eingehalten, aber *nicht* zwischen dem letzten Impuls eines Befehls und dem ersten Impuls des nächsten. Wenn ein Nutzer z.B. Auf → Stop → Auf schnell hintereinander klickte, wurden der Stop-Impuls und der erste Impuls der anschließenden 3-Impuls-Umkehr mit nur Millisekunden Abstand gesendet — schneller als das Homematic-Funkrelais verarbeiten konnte. Der Aktor verschluckte einen der beiden schnellen Impulse, wodurch der interne Impulszähler von der echten Torposition abwich. Die Mindest-Impulspause (`pulse_delay`) wird jetzt zentral in `_do_pulse` *vor jedem* Impuls erzwungen, unabhängig davon, ob er zum selben Befehl oder einem neuen gehört. Dies ist der endgültige Fix für die seit v1.0.3 gemeldeten Tor-Desync-Probleme.
+
+### Added / Hinzugefügt
+
+- 🔢 **Pulse Count diagnostic sensor** – Shows the number of pulses since the last limit-switch sync as a plain number, resetting to 0 when the door reaches fully closed or fully open. Useful for runtime verification that the pulse counter matches the real door position. / **Diagnosesensor „Impulszähler"** – Zeigt die Anzahl der Impulse seit dem letzten Endschalter-Sync als Zahl an und setzt sich auf 0 zurück, wenn das Tor vollständig geschlossen oder geöffnet ist. Nützlich zur Laufzeitprüfung, ob der Impulszähler mit der echten Torposition übereinstimmt.
+
 ## [1.0.4] – 2025-07-08
 
 ### Fixed / Behoben
