@@ -439,7 +439,6 @@ class SmartGarageController:
     async def _pulse_once(self) -> bool:
         """Send a single pulse to the control switch."""
         domain = self.control_switch.split(".")[0]
-        self._last_pulse_time = dt_util.utcnow()
         try:
             if domain == "button":
                 await self.hass.services.async_call("button", "press", {"entity_id": self.control_switch})
@@ -447,6 +446,9 @@ class SmartGarageController:
                 await self.hass.services.async_call("switch", "turn_on", {"entity_id": self.control_switch})
                 await asyncio.sleep(self.pulse_ms / 1000)
                 await self.hass.services.async_call("switch", "turn_off", {"entity_id": self.control_switch})
+            # Record AFTER the pulse is fully complete so _do_pulse
+            # measures the gap from END of this pulse to START of next.
+            self._last_pulse_time = dt_util.utcnow()
             return True
         except Exception:
             _LOGGER.exception("Smart Garage: Pulse failed")
@@ -467,7 +469,19 @@ class SmartGarageController:
                 elapsed = (dt_util.utcnow() - self._last_pulse_time).total_seconds()
                 remaining = self.pulse_delay - elapsed
                 if remaining > 0:
+                    _LOGGER.debug(
+                        "Smart Garage: Enforcing %.2fs inter-pulse gap (elapsed=%.2fs, delay=%.2fs)",
+                        remaining,
+                        elapsed,
+                        self.pulse_delay,
+                    )
                     await asyncio.sleep(remaining)
+                else:
+                    _LOGGER.debug(
+                        "Smart Garage: Inter-pulse gap OK (elapsed=%.2fs >= delay=%.2fs)",
+                        elapsed,
+                        self.pulse_delay,
+                    )
 
             self.is_pulsing = True
             ok = await self._pulse_once()
