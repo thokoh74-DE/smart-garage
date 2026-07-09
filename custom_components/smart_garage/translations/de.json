@@ -54,6 +54,12 @@
           "ventilation_check_interval": "Prüfintervall",
           "presence_entity": "Anwesenheit",
           "rain_close_delay_min": "Regen-Schließverzögerung"
+        },
+        "data_description": {
+          "humidity_threshold": "Mindest-Luftfeuchtigkeit (relativ) im Innenraum, ab der gelüftet werden darf. Typisch 50-55% für Garagen. Bei niedrigerem Wert wird häufiger gelüftet.",
+          "ah_diff_threshold": "Absolute Feuchte (AH) = tatsächliche Wassermenge in der Luft (g/m³), unabhängig von der Temperatur. Dieser Schwellwert gibt an, um wie viel g/m³ die Innenluft feuchter sein muss als die Außenluft, damit gelüftet wird. Höherer Wert = seltener, aber effektiver lüften. Empfohlen: 3-5 g/m³.",
+          "ventilation_open_s": "Dauer, die der Motor beim Öffnen zur Lüftungsstellung läuft. 1.5s ≈ ca. 7-10 cm Spalt (je nach Torgeschwindigkeit).",
+          "ventilation_check_interval": "Wie oft die Feuchte-Werte geprüft und die Lüftungsempfehlung neu berechnet wird."
         }
       }
     }
@@ -118,6 +124,12 @@
           "ventilation_check_interval": "Prüfintervall",
           "presence_entity": "Anwesenheit",
           "rain_close_delay_min": "Regen-Verzögerung"
+        },
+        "data_description": {
+          "humidity_threshold": "Mindest-Luftfeuchtigkeit (relativ) im Innenraum, ab der gelüftet werden darf. Typisch 50-55% für Garagen. Bei niedrigerem Wert wird häufiger gelüftet.",
+          "ah_diff_threshold": "Absolute Feuchte (AH) = tatsächliche Wassermenge in der Luft (g/m³), unabhängig von der Temperatur. Dieser Schwellwert gibt an, um wie viel g/m³ die Innenluft feuchter sein muss als die Außenluft, damit gelüftet wird. Höherer Wert = seltener, aber effektiver lüften. Empfohlen: 3-5 g/m³.",
+          "ventilation_open_s": "Dauer, die der Motor beim Öffnen zur Lüftungsstellung läuft. 1.5s ≈ ca. 7-10 cm Spalt (je nach Torgeschwindigkeit).",
+          "ventilation_check_interval": "Wie oft die Feuchte-Werte geprüft und die Lüftungsempfehlung neu berechnet wird."
         }
       }
     }
