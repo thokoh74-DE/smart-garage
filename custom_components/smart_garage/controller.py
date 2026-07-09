@@ -232,7 +232,7 @@ class SmartGarageController:
             identifiers={(DOMAIN, self.entry_id)},
             name=self._config.get(CONF_NAME, "Smart Garage"),
             manufacturer="Smart Garage",
-            model="Impulse Garage Door v1",
+            model="Impulse Garage Door",
             sw_version=_INTEGRATION_VERSION,
         )
 
