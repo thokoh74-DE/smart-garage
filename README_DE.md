@@ -148,13 +148,75 @@ Entwickelt für **Homematic IP** Hardware, aber kompatibel mit **jedem impulsges
 
 ### 5-Schritte-Assistent
 
-| Schritt | Was konfiguriert wird |
-|:-------:|:----------------------|
-| **1** | **Name** (wird Gerätename + Entity-Präfix), Steuerungsschalter, Impulszeiten |
-| **2** | Endschalter, Erschütterungssensor, externer Taster — *alles optional* |
-| **3** | Versehentliches-Öffnen-Schutz, Vibrationsschwelle, Benachrichtigungs-Service |
-| **4** | Lüftungssteuerung aktivieren oder deaktivieren |
-| **5** | Klima-Sensoren, Regensensor, Schwellwerte — *alles optional* |
+<details>
+<summary><b>Schritt 1 — Grundeinstellungen</b></summary>
+
+![Schritt 1: Grundeinstellungen](docs/screenshots/step1_basic.png)
+
+| Feld | Beschreibung |
+|:-----|:-------------|
+| **Name / Präfix** | Wird zum Gerätenamen und Präfix aller Entity-IDs (z.B. „Garagentor" → `cover.garagentor`, `sensor.garagentor_impulszahler`). Standard je nach HA-Sprache. |
+| **Steuerungsschalter** | Die Switch- oder Button-Entity, die den Garagentorantrieb schaltet (z.B. `switch.hm_schaltaktor_garagentor`). |
+| **Impulsdauer** | Wie lange das Relais pro Impuls AN bleibt (in ms). Standard: 300 ms. |
+| **Impulspause** | Mindest-Wartezeit zwischen zwei aufeinanderfolgenden Impulsen (in Sekunden). Erhöhen, wenn der Aktor Impulse verschluckt. Standard: 1,0 s, empfohlen für Homematic IP: 1,5–2,0 s. |
+</details>
+
+<details>
+<summary><b>Schritt 2 — Positionssensoren (alle optional)</b></summary>
+
+![Schritt 2: Positionssensoren](docs/screenshots/step2_sensors.png)
+
+| Feld | Beschreibung |
+|:-----|:-------------|
+| **Endschalter unten** | Binary Sensor, der bestätigt, dass das Tor vollständig geschlossen ist (z.B. HmIP-FCI6 ch1). |
+| **Invertieren (OFF = geschlossen)** | Aktivieren, wenn der Sensor OFF meldet, wenn das Tor geschlossen ist (typisch für Homematic IP). |
+| **Endschalter oben** | Binary Sensor, der bestätigt, dass das Tor vollständig geöffnet ist (z.B. HmIP-FCI6 ch2). |
+| **Invertieren (OFF = offen)** | Aktivieren, wenn der Sensor OFF meldet, wenn das Tor offen ist. |
+| **Erschütterungssensor** | Erkennt Torbewegung. Wird für den Versehentliches-Öffnen-Schutz benötigt. |
+| **Fahrzeit** | Wie lange das Tor von komplett geschlossen bis komplett geöffnet braucht (in Sekunden). Wird für die Positionsschätzung verwendet. |
+| **Externer Taster** | Event- oder Binary-Sensor für die Erkennung physischer Tasterbetätigung. |
+</details>
+
+<details>
+<summary><b>Schritt 3 — Sicherheit</b></summary>
+
+![Schritt 3: Sicherheit](docs/screenshots/step3_safety.png)
+
+| Feld | Beschreibung |
+|:-----|:-------------|
+| **Versehentliches-Öffnen-Schutz** | Wenn aktiviert, erkennt er, wenn das Tor sich während der Lüftung zu weit bewegt, und schließt automatisch. |
+| **Vibrationsschwelle** | Wie viele Sekunden der Erschütterungssensor aktiv sein muss, bevor die Sicherheitsprüfung auslöst. |
+| **Schließverzögerung** | Sekunden Wartezeit vor dem automatischen Schließen nach erkanntem versehentlichen Öffnen. Gibt Zeit für die Benachrichtigung. |
+| **Benachrichtigungs-Service** | Service für Push-Nachrichten (z.B. `notify.pushover`). Leer lassen für persistente HA-Benachrichtigungen. |
+</details>
+
+<details>
+<summary><b>Schritt 4 — Lüftung</b></summary>
+
+![Schritt 4: Lüftung](docs/screenshots/step4_ventilation.png)
+
+Aktiviert oder deaktiviert die Lüftungssteuerung. Wenn aktiviert, erscheint ein fünfter Schritt für Klima-Sensoren.
+</details>
+
+<details>
+<summary><b>Schritt 5 — Klima-Sensoren & Schwellwerte (alle optional)</b></summary>
+
+![Schritt 5: Klima-Sensoren](docs/screenshots/step5_climate.png)
+
+| Feld | Beschreibung |
+|:-----|:-------------|
+| **Temperatur innen** | Temperatursensor in der Garage. Wird zusammen mit dem Feuchte-Sensor für die Berechnung der absoluten Luftfeuchtigkeit benötigt. |
+| **Feuchte innen** | Relativer Feuchte-Sensor in der Garage (%). |
+| **Temperatur außen** | Temperatursensor im Außenbereich. |
+| **Feuchte außen** | Relativer Feuchte-Sensor im Außenbereich (%). |
+| **Regensensor** | Binary Sensor (ON = es regnet). Wird kein Sensor ausgewählt, ist die Regen-Automatik deaktiviert. |
+| **Feuchte-Schwelle** | Mindest-Luftfeuchtigkeit (relativ, %) im Innenraum, ab der gelüftet werden darf. Typisch für Garagen: 50–55%. Niedrigerer Wert = häufiger lüften. |
+| **AH-Differenz** | Absolute Feuchte (AH) = tatsächliche Wassermenge in der Luft (g/m³), unabhängig von der Temperatur. Dieser Schwellwert gibt an, um wie viel g/m³ die Innenluft feuchter sein muss als die Außenluft, damit gelüftet wird. Höherer Wert = seltener, aber effektiver. Empfohlen: 3–5 g/m³. Siehe [Wie die Lüftungssteuerung funktioniert](#-wie-die-lüftungssteuerung-funktioniert). |
+| **Öffnungsdauer** | Wie lange der Motor beim Öffnen in die Lüftungsstellung läuft. 1,5 s ≈ 7–10 cm Spalt. |
+| **Prüfintervall** | Wie oft die Feuchte-Werte geprüft und die Lüftungsempfehlung neu berechnet wird. |
+| **Anwesenheit** | Gruppe, Person oder Sensor. Die automatische Lüftung öffnet nur, wenn jemand zuhause ist. Wird keine Entity ausgewählt, wird die Anwesenheit nicht geprüft. |
+| **Regen-Schließverzögerung** | Minuten Wartezeit, bevor das Tor bei Regen automatisch geschlossen wird. Verhindert, dass ein gerade erst geöffnetes Tor sofort wieder zugeht. 0 = sofort schließen. Empfohlen: 2–5 Min. |
+</details>
 
 ### Nachträgliche Konfiguration
 
@@ -335,6 +397,71 @@ Geräteseite → ⋮ → **Diagnose herunterladen**. Erstellt eine JSON-Datei mi
 
 ---
 
+## 💨 Wie die Lüftungssteuerung funktioniert
+
+### Das Problem: Relative vs. Absolute Luftfeuchtigkeit
+
+Relative Luftfeuchtigkeit (%) hängt von der Temperatur ab: warme Luft kann mehr Feuchtigkeit aufnehmen als kalte. Eine Garage bei 22°C / 65% relativer Feuchte enthält **mehr Wasser** (12,6 g/m³) als Außenluft bei 18°C / 72% (11,3 g/m³) — obwohl der Außen-Prozentwert höher ist. Das Tor zu öffnen entzieht der Garage in dieser Situation tatsächlich Feuchtigkeit.
+
+**Absolute Luftfeuchtigkeit** (AH, in g/m³) misst die tatsächliche Wassermenge pro Kubikmeter Luft, unabhängig von der Temperatur. Diesen Wert verwendet die Integration, um zu entscheiden, ob Lüften sinnvoll ist.
+
+### Was berechnet wird
+
+Bei jeder Prüfung (Standard: alle 15 Minuten) werden vier Sensorwerte gelesen und daraus berechnet:
+
+| Wert | Formel | Beispiel |
+|:-----|:-------|:---------|
+| **AH Innen** | Magnus-Formel aus Innentemp. + Feuchte | 22°C, 65% → **12,62 g/m³** |
+| **AH Außen** | Magnus-Formel aus Außentemp. + Feuchte | 18°C, 72% → **11,25 g/m³** |
+| **AH Differenz** | AH Innen − AH Außen | 12,62 − 11,25 = **1,37 g/m³** |
+| **Taupunkt** | Temperatur, bei der Kondenswasser entsteht | Innen: **15,2°C**, Außen: **13,1°C** |
+
+### Entscheidungslogik
+
+```
+WENN AH Außen ≥ AH Innen:
+    → "Nicht Lüften" (Außenluft ist feuchter, Lüften macht es schlimmer)
+
+WENN es regnet:
+    → "Nicht Lüften" (Regenluft ist zu feucht)
+
+WENN AH-Differenz ≥ Schwellwert (Standard 5,0 g/m³)
+   UND relative Innenfeuchte ≥ Schwellwert (Standard 55%):
+    → "Lüften" (großer Unterschied + innen tatsächlich feucht)
+
+WENN AH-Differenz ≥ halber Schwellwert (2,5 g/m³):
+    → "Neutral" (merklicher Unterschied, aber nicht groß genug)
+
+SONST:
+    → "Nicht Lüften"
+```
+
+### Wann öffnet das Tor tatsächlich?
+
+Die Empfehlung allein öffnet das Tor **nicht**. **Alle** Bedingungen müssen gleichzeitig erfüllt sein:
+
+| Bedingung | Prüfung |
+|:----------|:--------|
+| ✅ Schalter **„Belüftung Automatik"** ist EIN | Nutzer hat automatische Lüftung aktiviert |
+| ✅ Empfehlung ist **„Lüften"** | Berechnung ergab, dass Lüften effektiv ist |
+| ✅ Tor ist **geschlossen** | Kann nicht lüften wenn bereits offen |
+| ✅ Jemand ist **zuhause** | Anwesenheits-Entity zeigt „home" (falls konfiguriert) |
+| ✅ **Sonne ist aufgegangen** | Zwischen Sonnenauf- und -untergang |
+| ✅ Es **regnet nicht** | Regensensor ist OFF (falls konfiguriert) |
+
+Fällt eine Bedingung weg, während das Tor in Lüftungsstellung ist (z.B. alle gehen weg, Sonne geht unter, oder Empfehlung wechselt auf „Nicht Lüften"), wird das Tor automatisch **geschlossen**.
+
+### Empfohlene Einstellungen
+
+| Einstellung | Garage | Keller | Werkstatt |
+|:------------|:-------|:-------|:----------|
+| Feuchte-Schwelle | 50–55% | 55–60% | 45–50% |
+| AH-Differenz | 3–5 g/m³ | 3–5 g/m³ | 3–5 g/m³ |
+| Öffnungsdauer | 1,5–2,5 s | 1,5–2,0 s | 2,0–3,0 s |
+| Prüfintervall | 15 Min. | 15 Min. | 10 Min. |
+
+---
+
 ## 🏆 Quality Scale
 
 Diese Integration zielt auf den [Home Assistant Integration Quality Scale](https://developers.home-assistant.io/docs/core/integration-quality-scale/) **Silver**-Tier.
@@ -365,7 +492,7 @@ Beiträge sind willkommen! Bitte lies [CONTRIBUTING.md](CONTRIBUTING.md) vor dem
 
 ## 📄 Lizenz
 
-[MIT](LICENSE) © thokoh74-DE
+[MIT](LICENSE) © Thomas
 
 ---
 

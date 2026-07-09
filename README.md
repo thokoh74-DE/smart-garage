@@ -148,13 +148,75 @@ Designed for **Homematic IP** hardware but works with **any impulse-driven garag
 
 ### 5-Step Setup Wizard
 
-| Step | What you configure |
-|:----:|:-------------------|
-| **1** | **Name** (becomes device name + entity prefix), control switch, pulse timing |
-| **2** | Limit switches, vibration sensor, external button — *all optional* |
-| **3** | Accidental-open protection, vibration threshold, notification service |
-| **4** | Enable or disable ventilation |
-| **5** | Climate sensors, rain sensor, thresholds — *all optional* |
+<details>
+<summary><b>Step 1 — Basic Settings</b></summary>
+
+![Step 1: Basic Settings](docs/screenshots/step1_basic.png)
+
+| Field | Description |
+|:------|:------------|
+| **Name / Prefix** | Becomes the device name and prefix for all entity IDs (e.g. "Garagentor" → `cover.garagentor`, `sensor.garagentor_pulse_count`). Default depends on HA language. |
+| **Control Switch** | The switch or button entity that triggers the garage door motor (e.g. `switch.hm_schaltaktor_garagentor`). |
+| **Pulse Duration** | How long the relay stays ON for each pulse (in ms). Default: 300 ms. |
+| **Pulse Delay** | Minimum wait time between any two consecutive pulses (in seconds). Increase if the actor misses pulses. Default: 1.0 s, recommended for Homematic IP: 1.5–2.0 s. |
+</details>
+
+<details>
+<summary><b>Step 2 — Position Sensors (all optional)</b></summary>
+
+![Step 2: Position Sensors](docs/screenshots/step2_sensors.png)
+
+| Field | Description |
+|:------|:------------|
+| **Closed Sensor** | Binary sensor confirming the door is fully closed (e.g. HmIP-FCI6 ch1). |
+| **Invert (OFF = closed)** | Enable if the sensor reports OFF when the door is closed (common for Homematic IP). |
+| **Open Sensor** | Binary sensor confirming the door is fully open (e.g. HmIP-FCI6 ch2). |
+| **Invert (OFF = open)** | Enable if the sensor reports OFF when the door is open. |
+| **Vibration Sensor** | Detects door movement. Used for safety (accidental opening detection). |
+| **Travel Time** | How long the door takes to move from fully closed to fully open (in seconds). Used for position estimation. |
+| **External Button** | Event or binary sensor for detecting physical button presses. |
+</details>
+
+<details>
+<summary><b>Step 3 — Safety</b></summary>
+
+![Step 3: Safety](docs/screenshots/step3_safety.png)
+
+| Field | Description |
+|:------|:------------|
+| **Accidental-open protection** | When enabled, detects if the door moves too far during ventilation and auto-closes. |
+| **Vibration threshold** | How many seconds the vibration sensor must stay active before the safety check triggers. |
+| **Close delay** | Seconds to wait before auto-closing after accidental opening is detected. Gives time for notification. |
+| **Notification service** | Service to call for push notifications (e.g. `notify.pushover`). Leave empty for persistent HA notifications. |
+</details>
+
+<details>
+<summary><b>Step 4 — Ventilation</b></summary>
+
+![Step 4: Ventilation](docs/screenshots/step4_ventilation.png)
+
+Enable or disable the ventilation feature. When enabled, a fifth step appears for climate sensors.
+</details>
+
+<details>
+<summary><b>Step 5 — Climate Sensors & Thresholds (all optional)</b></summary>
+
+![Step 5: Climate Sensors](docs/screenshots/step5_climate.png)
+
+| Field | Description |
+|:------|:------------|
+| **Indoor Temperature** | Temperature sensor inside the garage. Used to calculate absolute humidity. |
+| **Indoor Humidity** | Relative humidity sensor inside the garage (%). |
+| **Outdoor Temperature** | Temperature sensor outdoors. |
+| **Outdoor Humidity** | Relative humidity sensor outdoors (%). |
+| **Rain Sensor** | Binary sensor (ON = raining). If not set, rain auto-close is disabled. |
+| **Humidity Threshold** | Minimum indoor relative humidity (%) before ventilation is allowed. Typical for garages: 50–55%. Lower values trigger ventilation more often. |
+| **AH Diff Threshold** | Absolute Humidity difference in g/m³. The indoor air must be this much more humid than outdoor for ventilation to trigger. Higher = less frequent but more effective. Recommended: 3–5 g/m³. See [How Ventilation Works](#-how-ventilation-works). |
+| **Ventilation Opening** | How long the motor runs when opening to ventilation position. 1.5 s ≈ 7–10 cm gap. |
+| **Check Interval** | How often humidity values are checked and the ventilation recommendation is recalculated. |
+| **Presence Entity** | Group, person, or sensor. Ventilation only opens when someone is home. If not set, presence is not checked. |
+| **Rain Close Delay** | Minutes to wait before closing the door when rain is detected. Prevents a just-opened door from closing immediately. 0 = close immediately. Recommended: 2–5 min. |
+</details>
 
 ### Reconfiguration
 
@@ -338,6 +400,71 @@ Go to the device page → ⋮ → **Download diagnostics**. This creates a JSON 
 
 ---
 
+## 💨 How Ventilation Works
+
+### The Problem: Relative vs. Absolute Humidity
+
+Relative humidity (%) depends on temperature: warm air holds more moisture than cold air. A garage at 22°C / 65% relative humidity contains **more water** (12.6 g/m³) than outdoor air at 18°C / 72% (11.3 g/m³) — even though the outdoor percentage is higher. Opening the door in this situation actually removes moisture from the garage.
+
+**Absolute humidity** (AH, in g/m³) measures the actual amount of water per cubic meter of air, independent of temperature. This is what the integration uses to decide whether ventilation is effective.
+
+### What Gets Calculated
+
+Every check interval (default: 15 minutes), the integration reads four sensor values and calculates:
+
+| Value | Formula | Example |
+|:------|:--------|:--------|
+| **AH Indoor** | Magnus formula from indoor temp + humidity | 22°C, 65% → **12.62 g/m³** |
+| **AH Outdoor** | Magnus formula from outdoor temp + humidity | 18°C, 72% → **11.25 g/m³** |
+| **AH Difference** | AH Indoor − AH Outdoor | 12.62 − 11.25 = **1.37 g/m³** |
+| **Dew Point** | Temperature at which condensation forms | Indoor: **15.2°C**, Outdoor: **13.1°C** |
+
+### Decision Logic
+
+```
+IF outdoor AH ≥ indoor AH:
+    → "Do Not Ventilate" (outdoor air is more humid, ventilation makes it worse)
+
+IF it is raining:
+    → "Do Not Ventilate" (rain air is too moist)
+
+IF AH difference ≥ threshold (default 5.0 g/m³)
+   AND indoor relative humidity ≥ threshold (default 55%):
+    → "Ventilate" (significant difference + indoor is actually humid)
+
+IF AH difference ≥ half the threshold (2.5 g/m³):
+    → "Neutral" (noticeable difference, but not large enough)
+
+ELSE:
+    → "Do Not Ventilate"
+```
+
+### When Does the Door Actually Open?
+
+The recommendation alone does **not** open the door. **All** of these conditions must be true simultaneously:
+
+| Condition | Check |
+|:----------|:------|
+| ✅ **Ventilation Auto** switch is ON | User has enabled automatic ventilation |
+| ✅ Recommendation is **"Ventilate"** | Calculation determined ventilation is effective |
+| ✅ Door is **closed** | Can't ventilate if already open |
+| ✅ Someone is **home** | Presence entity shows "home" (if configured) |
+| ✅ **Sun is up** | Between sunrise and sunset |
+| ✅ It is **not raining** | Rain sensor is OFF (if configured) |
+
+If any condition becomes false while the door is in ventilation position (e.g. everyone leaves, sun sets, or recommendation changes to "Do Not Ventilate"), the door is automatically **closed**.
+
+### Recommended Settings
+
+| Setting | Garage | Basement | Workshop |
+|:--------|:-------|:---------|:---------|
+| Humidity Threshold | 50–55% | 55–60% | 45–50% |
+| AH Diff Threshold | 3–5 g/m³ | 3–5 g/m³ | 3–5 g/m³ |
+| Ventilation Opening | 1.5–2.5 s | 1.5–2.0 s | 2.0–3.0 s |
+| Check Interval | 15 min | 15 min | 10 min |
+
+---
+
 ## 🏆 Quality Scale
 
 This integration targets the [Home Assistant Integration Quality Scale](https://developers.home-assistant.io/docs/core/integration-quality-scale/) **Silver** tier.
@@ -368,7 +495,7 @@ Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before
 
 ## 📄 License
 
-[MIT](LICENSE) © thokoh74-DE
+[MIT](LICENSE) © Thomas
 
 ---
 
