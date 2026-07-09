@@ -232,7 +232,7 @@ class SmartGarageController:
             identifiers={(DOMAIN, self.entry_id)},
             name=self._config.get(CONF_NAME, "Smart Garage"),
             manufacturer="Smart Garage",
-            model="Impulse Garage Door",
+            model="Impulse Garage Door v1",
             sw_version=_INTEGRATION_VERSION,
         )
 
@@ -638,6 +638,10 @@ class SmartGarageController:
         _LOGGER.info("Smart Garage: Ventilation open (%.1fs)", self.vent_open_s)
         await self._do_pulse()
         await asyncio.sleep(self.vent_open_s)
+        # The ventilation gap IS the intended delay between these two
+        # pulses. Override _last_pulse_time so the gap enforcement in
+        # _do_pulse doesn't add extra waiting on top of it.
+        self._last_pulse_time = dt_util.utcnow() - timedelta(seconds=self.pulse_delay)
         await self._do_pulse()
         self.is_ventilating = True
         self._notify_update()
