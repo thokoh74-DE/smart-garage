@@ -56,7 +56,12 @@
           "humidity_threshold": "Minimum indoor relative humidity before ventilation is allowed. Typical for garages: 50-55%. Lower values trigger ventilation more often.",
           "ah_diff_threshold": "Absolute Humidity (AH) = actual amount of water in the air (g/m³), independent of temperature. This threshold defines how much more moisture (in g/m³) the indoor air must have compared to outdoor air before ventilation is triggered. Higher value = less frequent but more effective. Recommended: 3-5 g/m³.",
           "ventilation_open_s": "Duration the motor runs when opening to ventilation position. 1.5s ≈ approx. 7-10 cm gap (depends on door speed).",
-          "ventilation_check_interval": "How often humidity values are checked and the ventilation recommendation is recalculated."
+          "ventilation_check_interval": "How often humidity values are checked and the ventilation recommendation is recalculated.",
+          "presence_entity": "Group, person, or sensor for presence detection. Automatic ventilation only opens the door when at least one person is home. If no entity is selected, presence is not checked and ventilation runs anytime.",
+          "rain_close_delay_min": "Waiting time in minutes before the door is automatically closed when rain is detected. Prevents a just-opened door from closing immediately. Set to 0 for immediate closing. Recommended: 2-5 minutes.",
+          "rain_sensor": "Binary sensor that detects rain (ON = raining). If no sensor is selected, rain auto-close is disabled.",
+          "indoor_temp_sensor": "Temperature sensor inside the garage. Used together with the humidity sensor to calculate absolute humidity.",
+          "outdoor_temp_sensor": "Temperature sensor outdoors. Used together with the humidity sensor to calculate absolute humidity."
         }
       }
     }
@@ -126,7 +131,12 @@
           "humidity_threshold": "Minimum indoor relative humidity before ventilation is allowed. Typical for garages: 50-55%. Lower values trigger ventilation more often.",
           "ah_diff_threshold": "Absolute Humidity (AH) = actual amount of water in the air (g/m³), independent of temperature. This threshold defines how much more moisture (in g/m³) the indoor air must have compared to outdoor air before ventilation is triggered. Higher value = less frequent but more effective. Recommended: 3-5 g/m³.",
           "ventilation_open_s": "Duration the motor runs when opening to ventilation position. 1.5s ≈ approx. 7-10 cm gap (depends on door speed).",
-          "ventilation_check_interval": "How often humidity values are checked and the ventilation recommendation is recalculated."
+          "ventilation_check_interval": "How often humidity values are checked and the ventilation recommendation is recalculated.",
+          "presence_entity": "Group, person, or sensor for presence detection. Automatic ventilation only opens the door when at least one person is home. If no entity is selected, presence is not checked and ventilation runs anytime.",
+          "rain_close_delay_min": "Waiting time in minutes before the door is automatically closed when rain is detected. Prevents a just-opened door from closing immediately. Set to 0 for immediate closing. Recommended: 2-5 minutes.",
+          "rain_sensor": "Binary sensor that detects rain (ON = raining). If no sensor is selected, rain auto-close is disabled.",
+          "indoor_temp_sensor": "Temperature sensor inside the garage. Used together with the humidity sensor to calculate absolute humidity.",
+          "outdoor_temp_sensor": "Temperature sensor outdoors. Used together with the humidity sensor to calculate absolute humidity."
         }
       }
     }

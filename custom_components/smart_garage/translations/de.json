@@ -59,7 +59,12 @@
           "humidity_threshold": "Mindest-Luftfeuchtigkeit (relativ) im Innenraum, ab der gelüftet werden darf. Typisch 50-55% für Garagen. Bei niedrigerem Wert wird häufiger gelüftet.",
           "ah_diff_threshold": "Absolute Feuchte (AH) = tatsächliche Wassermenge in der Luft (g/m³), unabhängig von der Temperatur. Dieser Schwellwert gibt an, um wie viel g/m³ die Innenluft feuchter sein muss als die Außenluft, damit gelüftet wird. Höherer Wert = seltener, aber effektiver lüften. Empfohlen: 3-5 g/m³.",
           "ventilation_open_s": "Dauer, die der Motor beim Öffnen zur Lüftungsstellung läuft. 1.5s ≈ ca. 7-10 cm Spalt (je nach Torgeschwindigkeit).",
-          "ventilation_check_interval": "Wie oft die Feuchte-Werte geprüft und die Lüftungsempfehlung neu berechnet wird."
+          "ventilation_check_interval": "Wie oft die Feuchte-Werte geprüft und die Lüftungsempfehlung neu berechnet wird.",
+          "presence_entity": "Gruppe, Person oder Sensor für Anwesenheitserkennung. Die automatische Lüftung öffnet das Tor nur, wenn mindestens eine Person zuhause ist. Wird keine Entity ausgewählt, wird die Anwesenheit nicht geprüft und immer gelüftet.",
+          "rain_close_delay_min": "Wartezeit in Minuten, bevor das Tor bei Regen automatisch geschlossen wird. Verhindert, dass ein gerade erst geöffnetes Tor sofort wieder zugeht. Bei 0 wird sofort geschlossen. Empfohlen: 2-5 Minuten.",
+          "rain_sensor": "Binary Sensor, der Regen erkennt (ON = es regnet). Wird kein Sensor ausgewählt, ist die Regen-Automatik deaktiviert.",
+          "indoor_temp_sensor": "Temperatursensor im Innenraum (Garage). Wird zusammen mit dem Feuchte-Sensor für die Berechnung der absoluten Luftfeuchtigkeit benötigt.",
+          "outdoor_temp_sensor": "Temperatursensor im Außenbereich. Wird zusammen mit dem Feuchte-Sensor für die Berechnung der absoluten Luftfeuchtigkeit benötigt."
         }
       }
     }
@@ -129,7 +134,12 @@
           "humidity_threshold": "Mindest-Luftfeuchtigkeit (relativ) im Innenraum, ab der gelüftet werden darf. Typisch 50-55% für Garagen. Bei niedrigerem Wert wird häufiger gelüftet.",
           "ah_diff_threshold": "Absolute Feuchte (AH) = tatsächliche Wassermenge in der Luft (g/m³), unabhängig von der Temperatur. Dieser Schwellwert gibt an, um wie viel g/m³ die Innenluft feuchter sein muss als die Außenluft, damit gelüftet wird. Höherer Wert = seltener, aber effektiver lüften. Empfohlen: 3-5 g/m³.",
           "ventilation_open_s": "Dauer, die der Motor beim Öffnen zur Lüftungsstellung läuft. 1.5s ≈ ca. 7-10 cm Spalt (je nach Torgeschwindigkeit).",
-          "ventilation_check_interval": "Wie oft die Feuchte-Werte geprüft und die Lüftungsempfehlung neu berechnet wird."
+          "ventilation_check_interval": "Wie oft die Feuchte-Werte geprüft und die Lüftungsempfehlung neu berechnet wird.",
+          "presence_entity": "Gruppe, Person oder Sensor für Anwesenheitserkennung. Die automatische Lüftung öffnet das Tor nur, wenn mindestens eine Person zuhause ist. Wird keine Entity ausgewählt, wird die Anwesenheit nicht geprüft und immer gelüftet.",
+          "rain_close_delay_min": "Wartezeit in Minuten, bevor das Tor bei Regen automatisch geschlossen wird. Verhindert, dass ein gerade erst geöffnetes Tor sofort wieder zugeht. Bei 0 wird sofort geschlossen. Empfohlen: 2-5 Minuten.",
+          "rain_sensor": "Binary Sensor, der Regen erkennt (ON = es regnet). Wird kein Sensor ausgewählt, ist die Regen-Automatik deaktiviert.",
+          "indoor_temp_sensor": "Temperatursensor im Innenraum (Garage). Wird zusammen mit dem Feuchte-Sensor für die Berechnung der absoluten Luftfeuchtigkeit benötigt.",
+          "outdoor_temp_sensor": "Temperatursensor im Außenbereich. Wird zusammen mit dem Feuchte-Sensor für die Berechnung der absoluten Luftfeuchtigkeit benötigt."
         }
       }
     }
