@@ -453,8 +453,22 @@ class SmartGarageController:
             return False
 
     async def _do_pulse(self) -> bool:
-        """Send one pulse and advance the state machine."""
+        """Send one pulse and advance the state machine.
+
+        Enforces a minimum delay of ``pulse_delay`` between any two
+        consecutive pulses, regardless of whether they belong to the same
+        command or to two back-to-back commands.  This prevents the
+        Homematic actor (or any RF relay) from receiving pulses faster
+        than it can process them.
+        """
         async with self._pulse_lock:
+            # Enforce minimum gap since the last pulse
+            if self._last_pulse_time:
+                elapsed = (dt_util.utcnow() - self._last_pulse_time).total_seconds()
+                remaining = self.pulse_delay - elapsed
+                if remaining > 0:
+                    await asyncio.sleep(remaining)
+
             self.is_pulsing = True
             ok = await self._pulse_once()
             if ok:
@@ -464,18 +478,17 @@ class SmartGarageController:
             return ok
 
     async def _multi_pulse(self, count: int) -> None:
-        """Send multiple pulses in sequence with a delay between each.
+        """Send multiple pulses in sequence.
 
-        Safe to run to completion without interruption: the command lock
-        held by the caller guarantees no other command's pulses can be
-        sent concurrently, so this always finishes exactly as intended.
+        The minimum gap between pulses is enforced by ``_do_pulse``
+        itself, so no additional sleep is needed here.  The command lock
+        held by the caller guarantees no other command's pulses can run
+        concurrently, so this always finishes exactly as intended.
         """
-        for i in range(count):
+        for _i in range(count):
             ok = await self._do_pulse()
             if not ok:
                 return
-            if i < count - 1:
-                await asyncio.sleep(self.pulse_delay)
 
     def _start_travel_timer(self, target: str) -> None:
         """Start fallback timer (only used if no limit switch configured)."""
