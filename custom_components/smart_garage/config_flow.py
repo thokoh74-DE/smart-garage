@@ -20,7 +20,12 @@ from .const import (
     CONF_INDOOR_HUMIDITY_SENSOR,
     CONF_INDOOR_TEMP_SENSOR,
     CONF_NAME,
+    CONF_NOTIFY_HA_PLUS_PRIORITY,
+    CONF_NOTIFY_HA_PLUS_SILENT,
+    CONF_NOTIFY_HA_PLUS_TAG,
+    CONF_NOTIFY_HA_PLUS_TARGET,
     CONF_NOTIFY_SERVICE,
+    CONF_NOTIFY_TYPE,
     CONF_OPEN_SENSOR,
     CONF_OPEN_SENSOR_INVERT,
     CONF_OUTDOOR_HUMIDITY_SENSOR,
@@ -39,6 +44,10 @@ from .const import (
     CONF_VIBRATION_SENSOR,
     DEFAULT_AH_DIFF_THRESHOLD,
     DEFAULT_HUMIDITY_THRESHOLD,
+    DEFAULT_NOTIFY_HA_PLUS_PRIORITY,
+    DEFAULT_NOTIFY_HA_PLUS_SILENT,
+    DEFAULT_NOTIFY_HA_PLUS_TAG,
+    DEFAULT_NOTIFY_TYPE,
     DEFAULT_PULSE_DELAY_S,
     DEFAULT_PULSE_DURATION_MS,
     DEFAULT_RAIN_CLOSE_DELAY_MIN,
@@ -48,6 +57,9 @@ from .const import (
     DEFAULT_VENTILATION_CHECK_INTERVAL,
     DEFAULT_VENTILATION_OPEN_S,
     DOMAIN,
+    NOTIFY_TYPE_HA_PLUS,
+    NOTIFY_TYPE_NONE,
+    NOTIFY_TYPE_NOTIFY,
 )
 
 _SUG = {
@@ -254,7 +266,7 @@ class SmartGarageOptionsFlow(OptionsFlow):
         """Show options menu."""
         return self.async_show_menu(
             step_id="init",
-            menu_options=["opt_basic", "opt_sensors", "opt_safety", "opt_ventilation"],
+            menu_options=["opt_basic", "opt_sensors", "opt_safety", "opt_notify", "opt_ventilation"],
         )
 
     async def async_step_opt_basic(self, ui=None):
@@ -330,7 +342,87 @@ class SmartGarageOptionsFlow(OptionsFlow):
                         CONF_SAFETY_CLOSE_DELAY_S,
                         default=self._d(CONF_SAFETY_CLOSE_DELAY_S, DEFAULT_SAFETY_CLOSE_DELAY_S),
                     ): _n(5, 60, 5, "s", "slider"),
+                }
+            ),
+        )
+
+    async def async_step_opt_notify(self, ui=None):
+        """Choose the notification channel."""
+        if ui:
+            self._data.update(ui)
+            notify_type = ui.get(CONF_NOTIFY_TYPE, DEFAULT_NOTIFY_TYPE)
+            if notify_type == NOTIFY_TYPE_NOTIFY:
+                return await self.async_step_opt_notify_standard()
+            if notify_type == NOTIFY_TYPE_HA_PLUS:
+                return await self.async_step_opt_notify_ha_plus()
+            return self._save()
+        return self.async_show_form(
+            step_id="opt_notify",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_NOTIFY_TYPE, default=self._d(CONF_NOTIFY_TYPE, DEFAULT_NOTIFY_TYPE)
+                    ): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=[
+                                {"value": NOTIFY_TYPE_NONE, "label": "Keine (nur persistent_notification)"},
+                                {"value": NOTIFY_TYPE_NOTIFY, "label": "Standard notify-Service"},
+                                {"value": NOTIFY_TYPE_HA_PLUS, "label": "Notify HA Plus"},
+                            ],
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                        )
+                    ),
+                }
+            ),
+        )
+
+    async def async_step_opt_notify_standard(self, ui=None):
+        """Settings for a plain notify.* service."""
+        if ui:
+            self._data.update(ui)
+            return self._save()
+        return self.async_show_form(
+            step_id="opt_notify_standard",
+            data_schema=vol.Schema(
+                {
                     vol.Optional(CONF_NOTIFY_SERVICE, default=self._d(CONF_NOTIFY_SERVICE, "")): str,
+                }
+            ),
+        )
+
+    async def async_step_opt_notify_ha_plus(self, ui=None):
+        """Settings for Notify HA Plus."""
+        if ui:
+            self._data.update(ui)
+            return self._save()
+        return self.async_show_form(
+            step_id="opt_notify_ha_plus",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_NOTIFY_HA_PLUS_TARGET,
+                        default=self._d(CONF_NOTIFY_HA_PLUS_TARGET, []),
+                    ): selector.EntitySelector(
+                        selector.EntitySelectorConfig(
+                            integration="notify_ha_plus", domain=["notify"], multiple=True
+                        )
+                    ),
+                    vol.Optional(
+                        CONF_NOTIFY_HA_PLUS_SILENT,
+                        default=self._d(CONF_NOTIFY_HA_PLUS_SILENT, DEFAULT_NOTIFY_HA_PLUS_SILENT),
+                    ): selector.BooleanSelector(),
+                    vol.Optional(
+                        CONF_NOTIFY_HA_PLUS_PRIORITY,
+                        default=self._d(CONF_NOTIFY_HA_PLUS_PRIORITY, DEFAULT_NOTIFY_HA_PLUS_PRIORITY),
+                    ): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=["high", "normal", "low"], mode=selector.SelectSelectorMode.DROPDOWN
+                        )
+                    ),
+                    vol.Optional(
+                        CONF_NOTIFY_HA_PLUS_TAG,
+                        default=self._d(CONF_NOTIFY_HA_PLUS_TAG, DEFAULT_NOTIFY_HA_PLUS_TAG),
+                    ): str,
                 }
             ),
         )

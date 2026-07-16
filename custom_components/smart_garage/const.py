@@ -17,6 +17,11 @@ CONF_SAFETY_ENABLED = "safety_enabled"
 CONF_SAFETY_VIBRATION_S = "safety_vibration_s"
 CONF_SAFETY_CLOSE_DELAY_S = "safety_close_delay_s"
 CONF_NOTIFY_SERVICE = "notify_service"
+CONF_NOTIFY_TYPE = "notify_type"
+CONF_NOTIFY_HA_PLUS_TARGET = "notify_ha_plus_target"
+CONF_NOTIFY_HA_PLUS_SILENT = "notify_ha_plus_silent"
+CONF_NOTIFY_HA_PLUS_PRIORITY = "notify_ha_plus_priority"
+CONF_NOTIFY_HA_PLUS_TAG = "notify_ha_plus_tag"
 CONF_ENABLE_VENTILATION = "enable_ventilation"
 CONF_INDOOR_TEMP_SENSOR = "indoor_temp_sensor"
 CONF_INDOOR_HUMIDITY_SENSOR = "indoor_humidity_sensor"
@@ -41,6 +46,13 @@ DEFAULT_AH_DIFF_THRESHOLD = 5.0
 DEFAULT_VENTILATION_OPEN_S = 2.0
 DEFAULT_VENTILATION_CHECK_INTERVAL = 15
 DEFAULT_RAIN_CLOSE_DELAY_MIN = 4
+NOTIFY_TYPE_NONE = "none"
+NOTIFY_TYPE_NOTIFY = "notify"
+NOTIFY_TYPE_HA_PLUS = "notify_ha_plus"
+DEFAULT_NOTIFY_TYPE = NOTIFY_TYPE_NONE
+DEFAULT_NOTIFY_HA_PLUS_SILENT = False
+DEFAULT_NOTIFY_HA_PLUS_PRIORITY = "high"
+DEFAULT_NOTIFY_HA_PLUS_TAG = "smart_garage"
 
 # Door states
 DOOR_CLOSED = "closed"

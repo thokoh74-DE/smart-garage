@@ -38,6 +38,11 @@ from .const import (
     CONF_INDOOR_TEMP_SENSOR,
     CONF_NAME,
     CONF_NOTIFY_SERVICE,
+    CONF_NOTIFY_TYPE,
+    CONF_NOTIFY_HA_PLUS_PRIORITY,
+    CONF_NOTIFY_HA_PLUS_SILENT,
+    CONF_NOTIFY_HA_PLUS_TAG,
+    CONF_NOTIFY_HA_PLUS_TARGET,
     CONF_OPEN_SENSOR,
     CONF_OPEN_SENSOR_INVERT,
     CONF_OUTDOOR_HUMIDITY_SENSOR,
@@ -56,6 +61,10 @@ from .const import (
     CONF_VIBRATION_SENSOR,
     DEFAULT_AH_DIFF_THRESHOLD,
     DEFAULT_HUMIDITY_THRESHOLD,
+    DEFAULT_NOTIFY_HA_PLUS_PRIORITY,
+    DEFAULT_NOTIFY_HA_PLUS_SILENT,
+    DEFAULT_NOTIFY_HA_PLUS_TAG,
+    DEFAULT_NOTIFY_TYPE,
     DEFAULT_PULSE_DELAY_S,
     DEFAULT_PULSE_DURATION_MS,
     DEFAULT_RAIN_CLOSE_DELAY_MIN,
@@ -73,6 +82,8 @@ from .const import (
     DOOR_STOPPED_UP,
     DOOR_VENTILATING,
     EVENT_NOTIFICATION,
+    NOTIFY_TYPE_HA_PLUS,
+    NOTIFY_TYPE_NOTIFY,
     VENT_NEUTRAL,
     VENT_NOT_RECOMMEND,
     VENT_RECOMMEND,
@@ -157,6 +168,13 @@ class SmartGarageController:
         self.safety_vibration_s = int(config.get(CONF_SAFETY_VIBRATION_S, DEFAULT_SAFETY_VIBRATION_S))
         self.safety_close_delay = int(config.get(CONF_SAFETY_CLOSE_DELAY_S, DEFAULT_SAFETY_CLOSE_DELAY_S))
         self.notify_service: str = config.get(CONF_NOTIFY_SERVICE, "")
+        self.notify_type: str = config.get(CONF_NOTIFY_TYPE, DEFAULT_NOTIFY_TYPE)
+        self.notify_ha_plus_target: list[str] = config.get(CONF_NOTIFY_HA_PLUS_TARGET, [])
+        self.notify_ha_plus_silent: bool = config.get(CONF_NOTIFY_HA_PLUS_SILENT, DEFAULT_NOTIFY_HA_PLUS_SILENT)
+        self.notify_ha_plus_priority: str = config.get(
+            CONF_NOTIFY_HA_PLUS_PRIORITY, DEFAULT_NOTIFY_HA_PLUS_PRIORITY
+        )
+        self.notify_ha_plus_tag: str = config.get(CONF_NOTIFY_HA_PLUS_TAG, DEFAULT_NOTIFY_HA_PLUS_TAG)
 
         self.vent_enabled_cfg: bool = config.get(CONF_ENABLE_VENTILATION, False)
         self.indoor_temp_id: str | None = config.get(CONF_INDOOR_TEMP_SENSOR)
@@ -999,23 +1017,43 @@ class SmartGarageController:
     # -- Notifications ----------------------------------------------------------
 
     def _fire_notification(self, title: str, message: str, critical: bool = False) -> None:
-        """Fire a notification event and optionally call a notify service."""
+        """Fire a notification event and dispatch via the configured channel."""
         _LOGGER.info("Smart Garage: %s - %s", title, message)
         self.hass.bus.async_fire(
             EVENT_NOTIFICATION,
             {"title": title, "message": message, "critical": critical},
         )
-        if self.notify_service:
+
+        if self.notify_type == NOTIFY_TYPE_NOTIFY and self.notify_service:
             parts = self.notify_service.split(".", 1)
             if len(parts) == 2:
                 self.hass.async_create_task(
                     self.hass.services.async_call(parts[0], parts[1], {"title": title, "message": message})
                 )
-        else:
+            return
+
+        if self.notify_type == NOTIFY_TYPE_HA_PLUS and self.notify_ha_plus_target:
             self.hass.async_create_task(
                 self.hass.services.async_call(
-                    "persistent_notification",
-                    "create",
-                    {"title": title, "message": message},
+                    "notify_ha_plus",
+                    "send_notification",
+                    {
+                        "target": self.notify_ha_plus_target,
+                        "title": title,
+                        "message": message,
+                        "critical": critical,
+                        "silent": self.notify_ha_plus_silent,
+                        "priority": self.notify_ha_plus_priority,
+                        "tag": self.notify_ha_plus_tag,
+                    },
                 )
             )
+            return
+
+        self.hass.async_create_task(
+            self.hass.services.async_call(
+                "persistent_notification",
+                "create",
+                {"title": title, "message": message},
+            )
+        )

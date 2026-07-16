@@ -74,7 +74,8 @@
           "opt_basic": "Grundeinstellungen",
           "opt_sensors": "Positionssensoren",
           "opt_safety": "Sicherheit",
-          "opt_ventilation": "Lüftungssteuerung"
+          "opt_ventilation": "Lüftungssteuerung",
+          "opt_notify": "Benachrichtigungen"
         }
       },
       "opt_basic": {
@@ -102,8 +103,7 @@
         "data": {
           "safety_enabled": "Versehentliches-Öffnen-Schutz",
           "safety_vibration_s": "Vibrationsschwelle",
-          "safety_close_delay_s": "Schließverzögerung",
-          "notify_service": "Benachrichtigungs-Service"
+          "safety_close_delay_s": "Schließverzögerung"
         }
       },
       "opt_ventilation": {
@@ -137,6 +137,30 @@
           "rain_sensor": "Binary sensor that detects rain (ON = raining). If no sensor is selected, rain auto-close is disabled.",
           "indoor_temp_sensor": "Temperature sensor inside the garage. Used together with the humidity sensor to calculate absolute humidity.",
           "outdoor_temp_sensor": "Temperature sensor outdoors. Used together with the humidity sensor to calculate absolute humidity."
+        }
+      },
+      "opt_notify": {
+        "title": "Benachrichtigungen",
+        "data": {
+          "notify_type": "Benachrichtigungskanal"
+        }
+      },
+      "opt_notify_standard": {
+        "title": "Benachrichtigungen – notify-Service",
+        "data": {
+          "notify_service": "Benachrichtigungs-Service"
+        },
+        "data_description": {
+          "notify_service": "z.B. notify.mobile_app_thomas (Format: domain.service)"
+        }
+      },
+      "opt_notify_ha_plus": {
+        "title": "Benachrichtigungen – Notify HA Plus",
+        "data": {
+          "notify_ha_plus_target": "Zielgruppe(n)",
+          "notify_ha_plus_silent": "Stumm (ohne Ton/Vibration)",
+          "notify_ha_plus_priority": "Priorität",
+          "notify_ha_plus_tag": "Tag"
         }
       }
     }
