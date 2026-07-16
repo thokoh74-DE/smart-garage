@@ -173,12 +173,6 @@
       "current_state": {
         "name": "Current State"
       },
-      "limit_switch_bottom": {
-        "name": "Limit Switch Bottom"
-      },
-      "limit_switch_top": {
-        "name": "Limit Switch Top"
-      },
       "vibration_sensor": {
         "name": "Vibration Sensor"
       },
@@ -212,6 +206,12 @@
       },
       "actor_reachable": {
         "name": "Actor Reachable"
+      },
+      "limit_switch_bottom": {
+        "name": "Limit Switch Bottom"
+      },
+      "limit_switch_top": {
+        "name": "Limit Switch Top"
       }
     },
     "switch": {

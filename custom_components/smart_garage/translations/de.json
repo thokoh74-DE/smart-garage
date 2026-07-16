@@ -176,12 +176,6 @@
       "current_state": {
         "name": "Aktueller Zustand"
       },
-      "limit_switch_bottom": {
-        "name": "Endschalter unten"
-      },
-      "limit_switch_top": {
-        "name": "Endschalter oben"
-      },
       "vibration_sensor": {
         "name": "Erschütterungssensor"
       },
@@ -215,6 +209,12 @@
       },
       "actor_reachable": {
         "name": "Aktor erreichbar"
+      },
+      "limit_switch_bottom": {
+        "name": "Endschalter unten"
+      },
+      "limit_switch_top": {
+        "name": "Endschalter oben"
       }
     },
     "switch": {

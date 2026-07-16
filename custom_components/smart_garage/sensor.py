@@ -71,30 +71,6 @@ async def async_setup_entry(hass, entry, async_add_entities):
         DiagCurrentState(entry, ctrl),
         DiagPulseCount(entry, ctrl),
     ]
-    if ctrl.closed_sensor:
-        entities.append(
-            DiagMirror(
-                entry,
-                hass,
-                ctrl,
-                "limit_switch_bottom",
-                ctrl.closed_sensor,
-                "endschalter_unten",
-                "mdi:arrow-collapse-down",
-            )
-        )
-    if ctrl.open_sensor:
-        entities.append(
-            DiagMirror(
-                entry,
-                hass,
-                ctrl,
-                "limit_switch_top",
-                ctrl.open_sensor,
-                "endschalter_oben",
-                "mdi:arrow-collapse-up",
-            )
-        )
     if ctrl.vibration_sensor:
         entities.append(
             DiagMirror(

@@ -1,5 +1,11 @@
 # Changelog / Änderungsprotokoll
 
+## [Unreleased]
+
+### Changed / Geändert
+
+- 🎨 **Limit-switch mirrors moved to `binary_sensor` domain** – `Endschalter oben` and `Endschalter unten` were diagnostic `sensor` entities mirroring an `on`/`off` string state. Home Assistant's frontend only applies `state_color` icon coloring to domains it has a defined color mapping for, and generic `sensor` entities with a plain on/off text state aren't one of them — so the icon color set via `state_color: true` in dashboard cards (e.g. `multiple-entity-row`) was silently ignored. Both entities are now proper `binary_sensor` entities, so state-based icon coloring works as expected. **Note:** this changes their entity IDs (`sensor.*_endschalter_*` → `binary_sensor.*_endschalter_*`); the old `sensor.*` entities will become orphaned in the entity registry after upgrading and can be deleted, and any automations/dashboards referencing the old `sensor.*` entity IDs need to be updated. / **Endschalter-Spiegelsensoren in die `binary_sensor`-Domain verschoben** – „Endschalter oben" und „Endschalter unten" waren diagnostische `sensor`-Entities, die einen `on`/`off`-Text-State gespiegelt haben. Das Frontend von Home Assistant wendet die `state_color`-Icon-Einfärbung nur auf Domains an, für die eine Farblogik definiert ist — generische `sensor`-Entities mit einem einfachen on/off-Text-State gehören nicht dazu, weshalb die über `state_color: true` gesetzte Icon-Farbe in Dashboard-Karten (z.B. `multiple-entity-row`) stillschweigend ignoriert wurde. Beide Entities sind jetzt reguläre `binary_sensor`-Entities, wodurch die zustandsabhängige Icon-Färbung wie erwartet funktioniert. **Hinweis:** Dadurch ändern sich die Entity-IDs (`sensor.*_endschalter_*` → `binary_sensor.*_endschalter_*`); die alten `sensor.*`-Entities werden nach dem Update verwaist in der Entity-Registry stehen und können gelöscht werden, referenzierende Automatisierungen/Dashboards müssen auf die neuen Entity-IDs angepasst werden.
+
 ## [1.0.5] – 2025-07-09
 
 ### Fixed / Behoben
