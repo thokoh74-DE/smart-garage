@@ -505,27 +505,66 @@ class SmartGarageController:
                 return
 
     def _start_travel_timer(self, target: str) -> None:
-        """Start fallback timer (only used if no limit switch configured)."""
+        """Start a travel timer.
+
+        Normally the configured limit switch (open_sensor/closed_sensor)
+        provides the definitive sync via _async_state_changed, and this
+        timer only exists as a proportional fallback for the no-sensor
+        case. But if a limit switch IS configured and its confirmation
+        never arrives (RF glitch, door physically jammed, misconfigured
+        invert flag, etc.), the door state would previously stay stuck in
+        OPENING/CLOSING forever - with the corresponding cover button
+        permanently disabled and no self-recovery. To guard against that,
+        a much longer safety-net timer is armed even when a limit switch
+        is configured; if it fires, the sensor never confirmed in time and
+        we treat this as a fault: send a real stop pulse (halting the
+        actor if it's genuinely still mid-travel) and notify critically so
+        the door can be checked physically, instead of pretending we know
+        the door reached its target.
+        """
         if self._travel_unsub:
             self._travel_unsub()
             self._travel_unsub = None
-        # If a position sensor is configured, let it handle definitive sync.
-        if target == DOOR_OPEN and self.open_sensor:
-            return
-        if target == DOOR_CLOSED and self.closed_sensor:
-            return
 
-        remaining = (100 - self.position) / 100 if target == DOOR_OPEN else self.position / 100
-        secs = max(remaining * self.travel_time, 1)
+        has_sensor = (target == DOOR_OPEN and self.open_sensor) or (
+            target == DOOR_CLOSED and self.closed_sensor
+        )
+        if has_sensor:
+            # Generous headroom beyond the expected travel time so this
+            # never fires during a normal, merely-slow-but-fine close/open.
+            secs = self.travel_time * 2 + 15
+        else:
+            remaining = (100 - self.position) / 100 if target == DOOR_OPEN else self.position / 100
+            secs = max(remaining * self.travel_time, 1)
 
         @callback
         def _done(_now):
             self._travel_unsub = None
-            if self.door_state == DOOR_OPENING:
-                self._do_sync(DOOR_OPEN, 100)
-            elif self.door_state == DOOR_CLOSING:
-                self._do_sync(DOOR_CLOSED, 0)
-            self._notify_update()
+            if not has_sensor:
+                if self.door_state == DOOR_OPENING:
+                    self._do_sync(DOOR_OPEN, 100)
+                elif self.door_state == DOOR_CLOSING:
+                    self._do_sync(DOOR_CLOSED, 0)
+                self._notify_update()
+                return
+
+            if self.door_state in (DOOR_OPENING, DOOR_CLOSING):
+                _LOGGER.warning(
+                    "Smart Garage: limit switch did not confirm within %.0fs "
+                    "while %s - sending a stop pulse as a safety fallback.",
+                    secs,
+                    self.door_state,
+                )
+                self._fire_notification(
+                    "Endschalter-Timeout",
+                    (
+                        "Der erwartete Endschalter hat nicht rechtzeitig "
+                        "bestätigt. Sicherheitshalber wurde ein Stopp-Impuls "
+                        "gesendet - bitte Garagentor prüfen."
+                    ),
+                    critical=True,
+                )
+                self.hass.async_create_task(self.async_stop())
 
         self._travel_unsub = async_call_later(self.hass, secs, _done)
 
@@ -719,6 +758,21 @@ class SmartGarageController:
                 return
             if self._sensor_active(eid, self.open_invert):
                 if self.is_ventilating and self.safety_enabled and not self._explicit_full_open:
+                    # The door is now confirmed fully open even though we
+                    # only expected the ventilation gap. Sync the
+                    # pulse-counting state machine to OPEN now, so that the
+                    # later safety-triggered close (_trigger_accidental_
+                    # open_safety) sends the correct number of pulses for
+                    # closing from fully open. Without this, the pulse
+                    # count stayed at the stale ventilation-gap value and
+                    # the close only sent the single pulse appropriate for
+                    # the narrow gap, not for a full-open door - leaving
+                    # the cover stuck without ever reaching the closed
+                    # limit switch. is_ventilating is intentionally left
+                    # True here; it's only cleared once DOOR_CLOSED is
+                    # actually confirmed.
+                    self._do_sync(DOOR_OPEN, 100)
+                    self._cancel_travel_timer()
                     self._trigger_accidental_open_safety()
                 else:
                     self._do_sync(DOOR_OPEN, 100)
