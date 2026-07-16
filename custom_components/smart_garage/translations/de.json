@@ -30,8 +30,7 @@
         "data": {
           "safety_enabled": "Versehentliches-Öffnen-Schutz",
           "safety_vibration_s": "Vibrationsschwelle",
-          "safety_close_delay_s": "Schließverzögerung",
-          "notify_service": "Benachrichtigungs-Service"
+          "safety_close_delay_s": "Schließverzögerung"
         }
       },
       "ventilation": {
@@ -86,7 +85,11 @@
         "data": {
           "control_switch": "Steuerungs-Schalter",
           "pulse_duration_ms": "Impulsdauer",
-          "pulse_delay_s": "Impulspause"
+          "pulse_delay_s": "Impulspause",
+          "actor_unreachable_grace_s": "Aktor-Nichterreichbarkeit Toleranz"
+        },
+        "data_description": {
+          "actor_unreachable_grace_s": "Wie lange der Aktor ununterbrochen nicht verfügbar sein muss, bevor er als wirklich 'nicht erreichbar' gilt (kritische Meldung). Verhindert Fehlalarme durch kurze Funk-Bestätigungs-Retries. 0 = sofort (altes Verhalten)."
         }
       },
       "opt_sensors": {

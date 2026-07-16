@@ -187,7 +187,8 @@ Designed for **Homematic IP** hardware but works with **any impulse-driven garag
 | **Accidental-open protection** | When enabled, detects if the door moves too far during ventilation and auto-closes. |
 | **Vibration threshold** | How many seconds the vibration sensor must stay active before the safety check triggers. |
 | **Close delay** | Seconds to wait before auto-closing after accidental opening is detected. Gives time for notification. |
-| **Notification service** | Service to call for push notifications (e.g. `notify.pushover`). Leave empty for persistent HA notifications. |
+
+> Notifications aren't configured here — after setup, use the ⚙️ gear icon → **Notifications** to choose a channel (see below).
 </details>
 
 <details>
@@ -220,7 +221,31 @@ Enable or disable the ventilation feature. When enabled, a fifth step appears fo
 
 ### Reconfiguration
 
-After setup, click the ⚙️ gear icon on the integration to access the **menu-based options flow** with **4 independent sections**. Edit only what you need — no clicking through everything.
+After setup, click the ⚙️ gear icon on the integration to access the **menu-based options flow** with **5 independent sections**. Edit only what you need — no clicking through everything.
+
+| Section | Covers |
+|:--------|:-------|
+| **Basic settings** | Control switch, pulse duration/delay, and the actor-unreachable grace period (see below). |
+| **Position sensors** | Limit switches, inversion, travel time, external button. |
+| **Safety** | Accidental-open protection, vibration threshold, close delay. |
+| **Notifications** | Choose the notification channel — see below. |
+| **Ventilation** | Enable/disable, then climate sensors and thresholds if enabled. |
+
+#### Notifications
+
+Pick one of three channels:
+
+| Channel | Behavior |
+|:--------|:---------|
+| **None** | Falls back to a persistent Home Assistant notification. |
+| **Standard notify service** | Free-text `domain.service` (e.g. `notify.mobile_app_thomas`), receives `title`/`message`. |
+| **Notify HA Plus** | Calls `notify_ha_plus.send_notification` directly, with its own settings: target group(s), silent, priority, tag. `critical` is set automatically per notification (e.g. always `true` for an accidental-opening alert). |
+
+All notifications (both channels) are sent bilingually — German and English combined in one title/message, e.g. *"Regen - Tor schließt / Rain - closing door"*.
+
+#### Actor-unreachable grace period
+
+Homematic actors communicate over RF and occasionally need to retry a command before getting confirmation, during which the control switch entity can briefly report `unavailable`. The **actor-unreachable grace period** (default 5 s, configurable 0–60 s in *Basic settings*) requires the actor to be continuously unavailable for that long before it's declared truly unreachable and a critical notification fires — preventing false alarms from ordinary RF retries. Recovery is always detected immediately, with no debounce. Set to `0` to restore instant-flip behavior.
 
 ---
 
@@ -255,8 +280,8 @@ After setup, click the ⚙️ gear icon on the integration to access the **menu-
 | Last Drive | `sensor` | Last state transition (translated enum) |
 | Last Command | `sensor` | Last user command (translated enum) |
 | Pulse Count | `sensor` | Number of pulses sent since the last confirmed limit-switch sync; resets to 0 when the door reaches fully closed or fully open |
-| Limit Switch Bottom | `sensor` | Mirrors hardware sensor state |
-| Limit Switch Top | `sensor` | Mirrors hardware sensor state |
+| Limit Switch Bottom | `binary_sensor` | Mirrors hardware sensor state; colors in dashboards via `state_color` |
+| Limit Switch Top | `binary_sensor` | Mirrors hardware sensor state; colors in dashboards via `state_color` |
 | Vibration Sensor | `sensor` | Mirrors hardware sensor state |
 | Control Switch | `sensor` | Mirrors hardware sensor state |
 

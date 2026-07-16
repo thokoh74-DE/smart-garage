@@ -10,6 +10,7 @@ from homeassistant.core import callback
 from homeassistant.helpers import selector
 
 from .const import (
+    CONF_ACTOR_UNREACHABLE_GRACE_S,
     CONF_AH_DIFF_THRESHOLD,
     CONF_CLOSED_SENSOR,
     CONF_CLOSED_SENSOR_INVERT,
@@ -42,6 +43,7 @@ from .const import (
     CONF_VENTILATION_CHECK_INTERVAL,
     CONF_VENTILATION_OPEN_S,
     CONF_VIBRATION_SENSOR,
+    DEFAULT_ACTOR_UNREACHABLE_GRACE_S,
     DEFAULT_AH_DIFF_THRESHOLD,
     DEFAULT_HUMIDITY_THRESHOLD,
     DEFAULT_NOTIFY_HA_PLUS_PRIORITY,
@@ -173,7 +175,6 @@ class SmartGarageConfigFlow(ConfigFlow, domain=DOMAIN):
                     vol.Optional(CONF_SAFETY_CLOSE_DELAY_S, default=DEFAULT_SAFETY_CLOSE_DELAY_S): _n(
                         5, 60, 5, "s", "slider"
                     ),
-                    vol.Optional(CONF_NOTIFY_SERVICE, default=""): str,
                 }
             ),
         )
@@ -285,6 +286,10 @@ class SmartGarageOptionsFlow(OptionsFlow):
                     vol.Optional(CONF_PULSE_DELAY_S, default=self._d(CONF_PULSE_DELAY_S, DEFAULT_PULSE_DELAY_S)): _n(
                         0.5, 10, 0.5, "s", "slider"
                     ),
+                    vol.Optional(
+                        CONF_ACTOR_UNREACHABLE_GRACE_S,
+                        default=self._d(CONF_ACTOR_UNREACHABLE_GRACE_S, DEFAULT_ACTOR_UNREACHABLE_GRACE_S),
+                    ): _n(0, 60, 1, "s", "slider"),
                 }
             ),
         )

@@ -187,7 +187,8 @@ Entwickelt für **Homematic IP** Hardware, aber kompatibel mit **jedem impulsges
 | **Versehentliches-Öffnen-Schutz** | Wenn aktiviert, erkennt er, wenn das Tor sich während der Lüftung zu weit bewegt, und schließt automatisch. |
 | **Vibrationsschwelle** | Wie viele Sekunden der Erschütterungssensor aktiv sein muss, bevor die Sicherheitsprüfung auslöst. |
 | **Schließverzögerung** | Sekunden Wartezeit vor dem automatischen Schließen nach erkanntem versehentlichen Öffnen. Gibt Zeit für die Benachrichtigung. |
-| **Benachrichtigungs-Service** | Service für Push-Nachrichten (z.B. `notify.pushover`). Leer lassen für persistente HA-Benachrichtigungen. |
+
+> Benachrichtigungen werden hier nicht konfiguriert — nach der Einrichtung über das ⚙️-Zahnrad → **Benachrichtigungen** einen Kanal wählen (siehe unten).
 </details>
 
 <details>
@@ -220,7 +221,31 @@ Aktiviert oder deaktiviert die Lüftungssteuerung. Wenn aktiviert, erscheint ein
 
 ### Nachträgliche Konfiguration
 
-Nach der Einrichtung: ⚙️ Zahnrad-Symbol → **Menü mit 4 unabhängigen Bereichen**. Nur bearbeiten, was nötig ist.
+Nach der Einrichtung: ⚙️ Zahnrad-Symbol → **Menü mit 5 unabhängigen Bereichen**. Nur bearbeiten, was nötig ist.
+
+| Bereich | Umfasst |
+|:--------|:--------|
+| **Grundeinstellungen** | Steuerungs-Schalter, Impulsdauer/-pause und die Aktor-Nichterreichbarkeit-Toleranz (siehe unten). |
+| **Positionssensoren** | Endschalter, Invertierung, Fahrzeit, externer Taster. |
+| **Sicherheit** | Versehentliches-Öffnen-Schutz, Vibrationsschwelle, Schließverzögerung. |
+| **Benachrichtigungen** | Benachrichtigungskanal wählen — siehe unten. |
+| **Lüftung** | Aktivieren/deaktivieren, danach Klima-Sensoren und Schwellwerte, falls aktiviert. |
+
+#### Benachrichtigungen
+
+Einer von drei Kanälen:
+
+| Kanal | Verhalten |
+|:------|:----------|
+| **Keine** | Fallback auf eine persistente Home-Assistant-Benachrichtigung. |
+| **Standard notify-Service** | Freitext `domain.service` (z.B. `notify.mobile_app_thomas`), erhält `title`/`message`. |
+| **Notify HA Plus** | Ruft `notify_ha_plus.send_notification` direkt auf, mit eigenen Einstellungen: Zielgruppe(n), Stumm, Priorität, Tag. `critical` wird automatisch je nach Meldung gesetzt (z.B. immer `true` bei versehentlichem Öffnen). |
+
+Alle Benachrichtigungen (beide Kanäle) werden zweisprachig versendet — Deutsch und Englisch gemeinsam in einem Titel/Text, z.B. *"Regen - Tor schließt / Rain - closing door"*.
+
+#### Aktor-Nichterreichbarkeit Toleranz
+
+Homematic-Aktoren kommunizieren per Funk und müssen einen Befehl gelegentlich wiederholen, bevor eine Bestätigung eintrifft — währenddessen kann die Steuerungs-Schalter-Entity kurz „unavailable" melden. Die **Aktor-Nichterreichbarkeit Toleranz** (Standard 5s, einstellbar 0–60s unter *Grundeinstellungen*) verlangt, dass der Aktor so lange ununterbrochen nicht verfügbar ist, bevor er als wirklich nicht erreichbar gilt und eine kritische Benachrichtigung feuert — verhindert Fehlalarme durch normale Funk-Retries. Die Wiederherstellung wird immer sofort erkannt, ohne Verzögerung. Bei `0` verhält es sich wie zuvor (sofortiges Kippen).
 
 ---
 
@@ -253,7 +278,7 @@ Nach der Einrichtung: ⚙️ Zahnrad-Symbol → **Menü mit 4 unabhängigen Bere
 | Letzter Fahrbefehl | `sensor` | Letzte Zustandsänderung (übersetzter Enum) |
 | Letzter Befehl | `sensor` | Letzter Benutzerbefehl (übersetzter Enum) |
 | Impulszähler | `sensor` | Anzahl gesendeter Impulse seit dem letzten bestätigten Endschalter-Sync; setzt sich auf 0 zurück, sobald das Tor vollständig geschlossen oder geöffnet ist |
-| Endschalter unten / oben | `sensor` | Spiegelt Hardware-Sensorstatus |
+| Endschalter unten / oben | `binary_sensor` | Spiegelt Hardware-Sensorstatus; Icon-Einfärbung im Dashboard via `state_color` möglich |
 | Erschütterungssensor | `sensor` | Spiegelt Hardware-Sensorstatus |
 | Schaltaktor | `sensor` | Spiegelt Hardware-Sensorstatus |
 

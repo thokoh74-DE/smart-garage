@@ -22,6 +22,7 @@ CONF_NOTIFY_HA_PLUS_TARGET = "notify_ha_plus_target"
 CONF_NOTIFY_HA_PLUS_SILENT = "notify_ha_plus_silent"
 CONF_NOTIFY_HA_PLUS_PRIORITY = "notify_ha_plus_priority"
 CONF_NOTIFY_HA_PLUS_TAG = "notify_ha_plus_tag"
+CONF_ACTOR_UNREACHABLE_GRACE_S = "actor_unreachable_grace_s"
 CONF_ENABLE_VENTILATION = "enable_ventilation"
 CONF_INDOOR_TEMP_SENSOR = "indoor_temp_sensor"
 CONF_INDOOR_HUMIDITY_SENSOR = "indoor_humidity_sensor"
@@ -53,6 +54,7 @@ DEFAULT_NOTIFY_TYPE = NOTIFY_TYPE_NONE
 DEFAULT_NOTIFY_HA_PLUS_SILENT = False
 DEFAULT_NOTIFY_HA_PLUS_PRIORITY = "high"
 DEFAULT_NOTIFY_HA_PLUS_TAG = "smart_garage"
+DEFAULT_ACTOR_UNREACHABLE_GRACE_S = 5
 
 # Door states
 DOOR_CLOSED = "closed"

@@ -27,6 +27,7 @@ from homeassistant.helpers.sun import is_up as sun_is_up
 from homeassistant.util import dt as dt_util
 
 from .const import (
+    CONF_ACTOR_UNREACHABLE_GRACE_S,
     CONF_AH_DIFF_THRESHOLD,
     CONF_CLOSED_SENSOR,
     CONF_CLOSED_SENSOR_INVERT,
@@ -59,6 +60,7 @@ from .const import (
     CONF_VENTILATION_CHECK_INTERVAL,
     CONF_VENTILATION_OPEN_S,
     CONF_VIBRATION_SENSOR,
+    DEFAULT_ACTOR_UNREACHABLE_GRACE_S,
     DEFAULT_AH_DIFF_THRESHOLD,
     DEFAULT_HUMIDITY_THRESHOLD,
     DEFAULT_NOTIFY_HA_PLUS_PRIORITY,
@@ -233,6 +235,10 @@ class SmartGarageController:
         self.sw_manual_ventilation: bool = False
 
         self.actor_reachable: bool = True
+        self.actor_unreachable_grace_s = float(
+            config.get(CONF_ACTOR_UNREACHABLE_GRACE_S, DEFAULT_ACTOR_UNREACHABLE_GRACE_S)
+        )
+        self._actor_unreachable_unsub = None
         self._unsub: list = []
         self._travel_unsub = None
         self._rain_close_unsub = None
@@ -363,12 +369,14 @@ class SmartGarageController:
             self._travel_unsub,
             self._rain_close_unsub,
             self._safety_close_unsub,
+            self._actor_unreachable_unsub,
         ):
             if handle:
                 handle()
         self._travel_unsub = None
         self._rain_close_unsub = None
         self._safety_close_unsub = None
+        self._actor_unreachable_unsub = None
 
     # -- Sensor helpers -------------------------------------------------
 
@@ -574,11 +582,14 @@ class SmartGarageController:
                     self.door_state,
                 )
                 self._fire_notification(
-                    "Endschalter-Timeout",
-                    (
-                        "Der erwartete Endschalter hat nicht rechtzeitig "
-                        "bestätigt. Sicherheitshalber wurde ein Stopp-Impuls "
-                        "gesendet - bitte Garagentor prüfen."
+                    self._bi("Endschalter-Timeout", "Limit Switch Timeout"),
+                    self._bi(
+                        "Der erwartete Endschalter hat nicht rechtzeitig bestätigt. "
+                        "Sicherheitshalber wurde ein Stopp-Impuls gesendet - bitte "
+                        "Garagentor prüfen.",
+                        "The expected limit switch did not confirm in time. A stop "
+                        "pulse was sent as a precaution - please check the garage "
+                        "door.",
                     ),
                     critical=True,
                 )
@@ -752,15 +763,52 @@ class SmartGarageController:
             # any misattribution directly corrupts the pulse-count state
             # machine. Physical button presses are already captured reliably
             # via the dedicated external_button entity, if configured.
-            prev = self.actor_reachable
-            self.actor_reachable = new.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN)
-            if prev and not self.actor_reachable and self.door_state != DOOR_CLOSED:
-                self._fire_notification(
-                    "Actor unreachable",
-                    "Garage door is open and actor is unreachable.",
-                    critical=True,
+            #
+            # The Homematic actor communicates over RF and its underlying
+            # client occasionally has to retry a command before getting a
+            # confirmation, during which HA may briefly report this entity
+            # as unavailable/unknown (a few hundred ms to a couple of
+            # seconds). Treating every such blip as "actor unreachable"
+            # produces false-positive critical notifications on ordinary
+            # pulses. Instead, going unreachable is debounced: a timer is
+            # armed for `actor_unreachable_grace_s` and the state is only
+            # declared truly unreachable if it's still unavailable once
+            # that timer fires. Recovery is never debounced - the moment
+            # the entity reports a real state again, reachability is
+            # restored immediately.
+            is_available = new.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN)
+
+            if is_available:
+                if self._actor_unreachable_unsub:
+                    self._actor_unreachable_unsub()
+                    self._actor_unreachable_unsub = None
+                if not self.actor_reachable:
+                    self.actor_reachable = True
+                    self._notify_update()
+                return
+
+            if self.actor_reachable and not self._actor_unreachable_unsub:
+
+                @callback
+                def _confirm_unreachable(_now):
+                    self._actor_unreachable_unsub = None
+                    current = self.hass.states.get(self.control_switch)
+                    if current is None or current.state in (STATE_UNAVAILABLE, STATE_UNKNOWN):
+                        self.actor_reachable = False
+                        if self.door_state != DOOR_CLOSED:
+                            self._fire_notification(
+                                self._bi("Aktor nicht erreichbar", "Actor unreachable"),
+                                self._bi(
+                                    "Das Garagentor ist offen und der Aktor ist nicht erreichbar.",
+                                    "Garage door is open and actor is unreachable.",
+                                ),
+                                critical=True,
+                            )
+                        self._notify_update()
+
+                self._actor_unreachable_unsub = async_call_later(
+                    self.hass, self.actor_unreachable_grace_s, _confirm_unreachable
                 )
-            self._notify_update()
             return
 
         if eid == self.closed_sensor:
@@ -879,8 +927,11 @@ class SmartGarageController:
             return
         self._safety_pending = True
         self._fire_notification(
-            "Accidental opening",
-            f"Door will close in {self.safety_close_delay}s.",
+            self._bi("Versehentliches Öffnen", "Accidental opening"),
+            self._bi(
+                f"Tor schließt in {self.safety_close_delay}s.",
+                f"Door will close in {self.safety_close_delay}s.",
+            ),
             critical=True,
         )
 
@@ -903,8 +954,11 @@ class SmartGarageController:
 
         if self.is_ventilating:
             self._fire_notification(
-                "Rain - closing ventilation",
-                "Rain detected, closing garage door.",
+                self._bi("Regen - Lüftung schließt", "Rain - closing ventilation"),
+                self._bi(
+                    "Regen erkannt, Garagentor wird geschlossen.",
+                    "Rain detected, closing garage door.",
+                ),
             )
             self.hass.async_create_task(self.async_close_ventilation())
             return
@@ -916,15 +970,21 @@ class SmartGarageController:
 
         if elapsed >= required:
             self._fire_notification(
-                "Rain - closing door",
-                "Rain detected, closing garage door now.",
+                self._bi("Regen - Tor schließt", "Rain - closing door"),
+                self._bi(
+                    "Regen erkannt, Garagentor wird jetzt geschlossen.",
+                    "Rain detected, closing garage door now.",
+                ),
             )
             self.hass.async_create_task(self.async_close())
         else:
             remaining = required - elapsed
             self._fire_notification(
-                "Rain - door open",
-                f"Rain detected. Door will close in {int(remaining)}s if still raining.",
+                self._bi("Regen - Tor offen", "Rain - door open"),
+                self._bi(
+                    f"Regen erkannt. Tor schließt in {int(remaining)}s, falls es weiter regnet.",
+                    f"Rain detected. Door will close in {int(remaining)}s if still raining.",
+                ),
             )
             if self._rain_close_unsub:
                 self._rain_close_unsub()
@@ -935,8 +995,11 @@ class SmartGarageController:
                 if not self.is_raining or self.door_state == DOOR_CLOSED or not self.sw_rain_auto_close:
                     return
                 self._fire_notification(
-                    "Rain - closing now",
-                    "Still raining. Closing garage door.",
+                    self._bi("Regen - schließt jetzt", "Rain - closing now"),
+                    self._bi(
+                        "Es regnet weiterhin. Garagentor wird geschlossen.",
+                        "Still raining. Closing garage door.",
+                    ),
                 )
                 self.hass.async_create_task(self.async_close())
 
@@ -1015,6 +1078,16 @@ class SmartGarageController:
             self.hass.async_create_task(self.async_close_ventilation())
 
     # -- Notifications ----------------------------------------------------------
+
+    @staticmethod
+    def _bi(de: str, en: str) -> str:
+        """Combine a German and English string into one bilingual notification string.
+
+        Matches the project's existing bilingual convention (README/CHANGELOG:
+        German text, then " / ", then the English equivalent) so notifications
+        read the same way regardless of which family member's phone shows them.
+        """
+        return f"{de} / {en}"
 
     def _fire_notification(self, title: str, message: str, critical: bool = False) -> None:
         """Fire a notification event and dispatch via the configured channel."""

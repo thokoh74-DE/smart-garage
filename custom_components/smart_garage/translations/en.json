@@ -27,8 +27,7 @@
         "data": {
           "safety_enabled": "Accidental-open protection",
           "safety_vibration_s": "Vibration threshold",
-          "safety_close_delay_s": "Close delay",
-          "notify_service": "Notification service"
+          "safety_close_delay_s": "Close delay"
         }
       },
       "ventilation": {
@@ -83,7 +82,11 @@
         "data": {
           "control_switch": "Steuerungs-Schalter",
           "pulse_duration_ms": "Impulsdauer",
-          "pulse_delay_s": "Impulspause"
+          "pulse_delay_s": "Impulspause",
+          "actor_unreachable_grace_s": "Actor unreachable grace period"
+        },
+        "data_description": {
+          "actor_unreachable_grace_s": "How long the actor must be continuously unavailable before it's considered truly 'unreachable' (critical notification). Prevents false alarms from brief RF command-confirmation retries. 0 = immediate (old behavior)."
         }
       },
       "opt_sensors": {
