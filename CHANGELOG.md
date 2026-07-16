@@ -1,6 +1,6 @@
 # Changelog / Änderungsprotokoll
 
-## [Unreleased]
+## [1.0.6] - 2026-07-16
 
 ### Fixed / Behoben
 
@@ -11,7 +11,7 @@
 
 - 🎨 **Limit-switch mirrors moved to `binary_sensor` domain** – `Endschalter oben` and `Endschalter unten` were diagnostic `sensor` entities mirroring an `on`/`off` string state. Home Assistant's frontend only applies `state_color` icon coloring to domains it has a defined color mapping for, and generic `sensor` entities with a plain on/off text state aren't one of them — so the icon color set via `state_color: true` in dashboard cards (e.g. `multiple-entity-row`) was silently ignored. Both entities are now proper `binary_sensor` entities, so state-based icon coloring works as expected. **Note:** this changes their entity IDs (`sensor.*_endschalter_*` → `binary_sensor.*_endschalter_*`); the old `sensor.*` entities will become orphaned in the entity registry after upgrading and can be deleted, and any automations/dashboards referencing the old `sensor.*` entity IDs need to be updated. / **Endschalter-Spiegelsensoren in die `binary_sensor`-Domain verschoben** – „Endschalter oben" und „Endschalter unten" waren diagnostische `sensor`-Entities, die einen `on`/`off`-Text-State gespiegelt haben. Das Frontend von Home Assistant wendet die `state_color`-Icon-Einfärbung nur auf Domains an, für die eine Farblogik definiert ist — generische `sensor`-Entities mit einem einfachen on/off-Text-State gehören nicht dazu, weshalb die über `state_color: true` gesetzte Icon-Farbe in Dashboard-Karten (z.B. `multiple-entity-row`) stillschweigend ignoriert wurde. Beide Entities sind jetzt reguläre `binary_sensor`-Entities, wodurch die zustandsabhängige Icon-Färbung wie erwartet funktioniert. **Hinweis:** Dadurch ändern sich die Entity-IDs (`sensor.*_endschalter_*` → `binary_sensor.*_endschalter_*`); die alten `sensor.*`-Entities werden nach dem Update verwaist in der Entity-Registry stehen und können gelöscht werden, referenzierende Automatisierungen/Dashboards müssen auf die neuen Entity-IDs angepasst werden.
 
-## [1.0.5] – 2025-07-09
+## [1.0.5] – 2026-07-09
 
 ### Fixed / Behoben
 
@@ -21,7 +21,7 @@
 
 - 🔢 **Pulse Count diagnostic sensor** – Shows the number of pulses since the last limit-switch sync as a plain number, resetting to 0 when the door reaches fully closed or fully open. Useful for runtime verification that the pulse counter matches the real door position. / **Diagnosesensor „Impulszähler"** – Zeigt die Anzahl der Impulse seit dem letzten Endschalter-Sync als Zahl an und setzt sich auf 0 zurück, wenn das Tor vollständig geschlossen oder geöffnet ist. Nützlich zur Laufzeitprüfung, ob der Impulszähler mit der echten Torposition übereinstimmt.
 
-## [1.0.4] – 2025-07-08
+## [1.0.4] – 2026-07-08
 
 ### Fixed / Behoben
 
@@ -31,7 +31,7 @@
 
 - 🔢 **Pulse Count diagnostic sensor** – Shows the number of pulses sent since the last confirmed limit-switch sync as a plain number, resetting to 0 the moment the door reaches fully closed or fully open. Makes it easy to verify the pulse-counting state machine matches the real door position at a glance. / **Diagnosesensor „Impulszähler"** – Zeigt die Anzahl der gesendeten Impulse seit dem letzten bestätigten Endschalter-Sync als einfache Zahl an und setzt sich auf 0 zurück, sobald das Tor vollständig geschlossen oder geöffnet ist. Macht es einfach, auf einen Blick zu prüfen, ob die impulszählende State Machine mit der echten Torposition übereinstimmt.
 
-## [1.0.3] – 2025-07-08
+## [1.0.3] – 2026-07-08
 
 ### Fixed / Behoben
 
@@ -53,7 +53,7 @@
 - ✅ `diagnostics.py` for downloadable state dumps from the device page / `diagnostics.py` für herunterladbare State-Dumps von der Geräteseite
 - ✅ `quality_scale.yaml` tracking Home Assistant Quality Scale compliance / `quality_scale.yaml` zur Nachverfolgung der Home Assistant Quality Scale
 
-## [1.0.0] – 2025-07-05
+## [1.0.0] – 2026-07-05
 
 ### Added / Hinzugefügt
 - 🚪 Pulse-counting state machine with `RestoreEntity` persistence / Impulszählende State Machine mit Zustandsspeicherung
