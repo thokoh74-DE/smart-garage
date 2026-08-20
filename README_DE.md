@@ -352,7 +352,7 @@ Du kannst das am **Impulszähler**-Diagnosesensor live mitverfolgen: Er erhöht 
 | Gerät | Typ | Zweck |
 |:------|:----|:------|
 | **HmIP-PCBS** | Schaltaktor | Steuerrelais (Impuls) |
-| **HmIP-FCI6** | Kontaktinterface | Endschalter (ch1 = unten, ch2 = oben) |
+| **HmIP-FCI6** | Kontaktinterface | Endschalter (ch1 = unten, ch2 = oben), Externer Taster (ch3) |
 | **HmIP-STV** | Neigungssensor | Erschütterung / Bewegungserkennung |
 
 ### Homematic IP Verkabelungshinweise
@@ -361,8 +361,15 @@ Du kannst das am **Impulszähler**-Diagnosesensor live mitverfolgen: Er erhöht 
 |:------|:------|:---------|:-------------|
 | HmIP-FCI6 | ch1 | Endschalter unten | **Ja** (OFF = geschlossen) |
 | HmIP-FCI6 | ch2 | Endschalter oben | **Nein** (ON = offen) |
+| HmIP-FCI6 | ch3 | Externer Taster | Betriebsart **„Taster"**, nicht „Kontakt" (siehe unten) |
 | HmIP-PCBS | — | Steuerungsschalter | — |
 | HmIP-STV | — | Erschütterungssensor | — |
+
+> ⚠️ **Wichtig — potentialfreier Anschluss:** Die Eingangskanäle des HmIP-FCI6 (und vergleichbarer Kontakt-Schnittstellen wie HmIP-FCI1) sind ausschließlich für **potentialfreie** Taster/Kontakte ausgelegt. Es darf **keine externe Spannung** direkt an einen Kanal angeschlossen werden — das kann die Erkennung stören oder das Gerät beschädigen.
+>
+> Viele Torantriebs-Impulseingänge (z.B. Klemmen 20/21 bei Hörmann Supramatic-Antrieben) liegen intern jedoch dauerhaft auf einer Spannung (typ. ~20–24 V DC über einen internen Pull-up) und schalten beim Tastendruck lediglich auf 0 V — das ist **kein** potentialfreier Kontakt im Sinne des FCI6. In diesem Fall ist eine **galvanische Trennung** erforderlich, z.B. über ein kleines Optokoppler-Modul (PC817-Basis o.ä.) mit ausreichend hochohmigem Vorwiderstand, damit der Eingang der Torsteuerung nicht zu stark belastet wird. Ein zu niedriger Vorwiderstand kann so viel Strom ziehen, dass die Steuerung den Eingang fälschlich als dauerhaft betätigt erkennt und in der Folge gar nicht mehr auf den Taster reagiert.
+>
+> **Kanal-Betriebsart:** Für den externen Taster sollte der jeweilige FCI6-Kanal in der Homematic IP App/CCU auf **„Taster"** statt „Kontakt" konfiguriert werden. In der Betriebsart „Kontakt" wird jede Betätigung als zwei Zustandswechsel (Öffnen + Schließen) gemeldet, was zu doppelt ausgelösten Impulsen in Smart Garage führen kann. Im Taster-Modus erzeugt das Gerät dagegen ein einzelnes „Tastendruck kurz"-Ereignis pro Betätigung.
 
 ### Kompatibel mit
 
@@ -418,6 +425,16 @@ In v1.0.4 behoben: Befehle werden jetzt vollständig serialisiert, indem einfach
 <summary><b>Diagnosedaten benötigt?</b></summary>
 
 Geräteseite → ⋮ → **Diagnose herunterladen**. Erstellt eine JSON-Datei mit dem vollständigen State-Machine-Zustand, Sensorstatus und Konfiguration (sensible Daten geschwärzt).
+</details>
+
+<details>
+<summary><b>Externer Taster löst doppelt aus (z.B. bei HmIP-FCI6)</b></summary>
+
+Wird der externe Taster über eine Kontakt-Schnittstelle wie den **HmIP-FCI6** (oder ähnliche Geräte) eingebunden, ist der zugehörige Kanal standardmäßig oft auf die Betriebsart **„Kontakt"** (Fenster-/Türkontakt-Logik) eingestellt. Dabei meldet das Gerät sowohl das Öffnen als auch das Schließen des Kontakts als eigenen Zustandswechsel — ein einzelner Tastendruck erzeugt dadurch zwei Ereignisse (einmal beim Drücken, einmal beim Loslassen).
+
+**Lösung:** Den betroffenen Kanal in der Homematic IP App (bzw. CCU) von „Kontakt" auf **„Taster"** umstellen. In diesem Modus erzeugt das Gerät pro Betätigung nur noch ein einzelnes „Tastendruck kurz"-Ereignis statt eines doppelten Zustandswechsels. Anschließend in Smart Garage unter **Externer Taster** die entsprechende Entity (neu) auswählen, falls sich der Entity-Typ durch die Umstellung geändert hat.
+
+Dieses Verhalten betrifft nicht nur den HmIP-FCI6, sondern grundsätzlich jede Kontakt-Schnittstelle bzw. jeden potentialfreien Eingang, der Tastendrücke als reinen Öffnen-/Schließen-Zustand statt als diskretes Tastenereignis abbildet.
 </details>
 
 ---

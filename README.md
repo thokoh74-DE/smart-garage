@@ -355,7 +355,7 @@ You can watch the **Pulse Count** diagnostic sensor to see this in action: it in
 | Device | Type | Purpose |
 |:-------|:-----|:--------|
 | **HmIP-PCBS** | Switching actuator | Control relay (impulse) |
-| **HmIP-FCI6** | Contact interface | Limit switches (ch1 = bottom, ch2 = top) |
+| **HmIP-FCI6** | Contact interface | Limit switches (ch1 = bottom, ch2 = top), External button (ch3) |
 | **HmIP-STV** | Tilt sensor | Vibration / movement detection |
 
 ### Homematic IP Wiring Notes
@@ -364,8 +364,15 @@ You can watch the **Pulse Count** diagnostic sensor to see this in action: it in
 |:-------|:--------|:---------|:--------|
 | HmIP-FCI6 | ch1 | Limit switch bottom | **Yes** (OFF = closed) |
 | HmIP-FCI6 | ch2 | Limit switch top | **No** (ON = open) |
+| HmIP-FCI6 | ch3 | External button | **"Button"** mode, not "Contact" (see below) |
 | HmIP-PCBS | — | Control switch | — |
 | HmIP-STV | — | Vibration sensor | — |
+
+> ⚠️ **Important — potential-free wiring:** The HmIP-FCI6's input channels (and similar contact interfaces such as the HmIP-FCI1) are designed exclusively for **potential-free** buttons/contacts. Do **not** connect any external voltage directly to a channel — this can prevent proper detection or damage the device.
+>
+> Many garage door impulse inputs (e.g. terminals 20/21 on Hörmann Supramatic operators) are internally biased with a constant voltage (typically ~20–24 V DC via an internal pull-up) and simply drop to 0 V when the button is pressed — this is **not** a potential-free contact as the FCI6 expects. In that case you need **galvanic isolation**, e.g. via a small optocoupler module (PC817-based or similar) with a sufficiently high series resistor so the door controller's input isn't loaded too heavily. Too low a series resistor can draw enough current that the controller misreads the input as permanently pressed and stops responding to the physical button altogether.
+>
+> **Channel operating mode:** For the external button, configure the corresponding FCI6 channel to **"Button"** mode instead of "Contact" in the Homematic IP app/CCU. In "Contact" mode, each press is reported as two separate state changes (open + close), which can cause Smart Garage to register duplicate pulses. In "Button" mode the device instead emits a single "short press" event per actuation.
 
 ### Compatible With
 
@@ -421,6 +428,16 @@ Fixed in v1.0.4: commands are now fully serialized by simply waiting for any in-
 <summary><b>Need debug data?</b></summary>
 
 Go to the device page → ⋮ → **Download diagnostics**. This creates a JSON file with the complete state machine state, sensor states, and configuration (sensitive data redacted).
+</details>
+
+<details>
+<summary><b>External button triggers twice (e.g. with HmIP-FCI6)</b></summary>
+
+If the external button is wired through a contact interface such as the **HmIP-FCI6** (or similar devices), the corresponding channel is often configured by default in **"Contact"** mode (window/door contact logic). In that mode, the device reports both the opening and the closing of the contact as separate state changes — so a single button press generates two events (one on press, one on release).
+
+**Fix:** In the Homematic IP app (or CCU), change the channel's operating mode from "Contact" to **"Button"** (Taster). In this mode the device emits a single discrete "short press" event per actuation instead of two state changes. Afterwards, re-select the entity under **External button** in Smart Garage if the entity type changed as a result of the switch.
+
+This isn't specific to the HmIP-FCI6 — it applies to any contact interface or potential-free input that reports button presses as a plain open/close state instead of a discrete press event.
 </details>
 
 ---
