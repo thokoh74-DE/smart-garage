@@ -575,6 +575,29 @@ class SmartGarageController:
                 return
 
             if self.door_state in (DOOR_OPENING, DOOR_CLOSING):
+                # The sensor listener only fires on a state CHANGE. If the
+                # door never actually left the target position during a
+                # burst of rapid button presses, the sensor was already
+                # confirming the target the whole time and no fresh edge
+                # event ever arrived - even though the door really is
+                # where it should be. Re-check the sensor directly before
+                # assuming a real fault: acting on a stale CLOSING/OPENING
+                # state here would send a real extra pulse to an impulse
+                # motor, which can drive it the wrong way (e.g. open an
+                # already-closed door) instead of stopping it.
+                target_sensor = self.open_sensor if target == DOOR_OPEN else self.closed_sensor
+                target_invert = self.open_invert if target == DOOR_OPEN else self.closed_invert
+                if target_sensor and self._sensor_active(target_sensor, target_invert):
+                    _LOGGER.info(
+                        "Smart Garage: travel timer expired but %s sensor "
+                        "already confirms target - resyncing without a "
+                        "safety pulse.",
+                        target,
+                    )
+                    self._do_sync(target, 100 if target == DOOR_OPEN else 0)
+                    self._notify_update()
+                    return
+
                 _LOGGER.warning(
                     "Smart Garage: limit switch did not confirm within %.0fs "
                     "while %s - sending a stop pulse as a safety fallback.",
